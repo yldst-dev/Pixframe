@@ -10,9 +10,10 @@ import IconButton from './ui/icon-button';
 interface SettingsPanelProps {
   selectedImageIndex: number | null;
   onClose: () => void;
+  isMobile?: boolean;
 }
 
-const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedImageIndex, onClose }) => {
+const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedImageIndex, onClose, isMobile = false }) => {
   const { t } = useTranslation();
   const { photos } = useStore();
   const [activeSection, setActiveSection] = useState<'theme' | 'export'>('theme');
@@ -35,22 +36,25 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedImageIndex, onClo
   ];
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-background">
       {/* Panel Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-          {t('settings.title', 'Settings')}
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
+        <h2 className="font-bold uppercase tracking-tight text-foreground">
+          {t('settings.title', 'SETTINGS')}
         </h2>
         <IconButton
           variant="ghost"
+          size="sm"
           onClick={onClose}
         >
-          <span>✕</span>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </IconButton>
       </div>
 
-      {/* Section Navigation */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
+      {/* Tabs */}
+      <div className="flex border-b border-border">
         {sections.map((section) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
@@ -60,55 +64,31 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedImageIndex, onClo
               key={section.id}
               onClick={() => setActiveSection(section.id)}
               className={`
-                w-full flex items-center justify-between p-3 text-left transition-colors
+                flex-1 flex flex-col items-center justify-center py-3 px-2 transition-colors
                 ${isActive 
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-r-2 border-blue-500' 
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                  ? 'bg-secondary text-foreground border-b-2 border-primary' 
+                  : 'bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
                 }
               `}
             >
-              <div className="flex items-center space-x-3">
-                <Icon size={20} />
-                <div>
-                  <div className="font-medium text-sm">{section.title}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {section.description}
-                  </div>
-                </div>
+              <div className="flex items-center space-x-2">
+                <Icon size={16} />
+                <span className="font-bold uppercase text-xs tracking-wide">{section.title}</span>
               </div>
-              {isActive ? (
-                <span>▼</span>
-              ) : (
-                <span>▶</span>
-              )}
             </button>
           );
         })}
       </div>
 
       {/* Section Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-y-auto p-4">
         {activeSection === 'theme' && (
-          <ThemeSettings selectedPhoto={selectedPhoto} />
+          <ThemeSettings selectedPhoto={selectedPhoto} isMobile={isMobile} />
         )}
         {activeSection === 'export' && (
           <ExportSettings />
         )}
       </div>
-
-      {/* Panel Footer */}
-      {selectedPhoto && (
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-          <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-            <div className="font-medium truncate">{selectedPhoto.file.name}</div>
-            <div>{selectedPhoto.metadata.make} {selectedPhoto.metadata.model}</div>
-            <div>
-              {selectedPhoto.metadata.focalLength} • {selectedPhoto.metadata.fNumber} • 
-              ISO {selectedPhoto.metadata.iso} • {selectedPhoto.metadata.exposureTime}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

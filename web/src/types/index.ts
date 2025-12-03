@@ -138,6 +138,7 @@ export interface ImagePreviewProps {
 
 export interface ThemeSettingsProps {
   selectedPhoto: Photo | null;
+  isMobile?: boolean;
 }
 
 /**

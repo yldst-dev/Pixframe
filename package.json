@@ -1,0 +1,26 @@
+{
+  "name": "pixframe",
+  "version": "1.0.0",
+  "description": "<p align=\"center\">   <img src=\"https://raw.githubusercontent.com/yldst-dev/Pixframe/refs/heads/main/preview%20image.jpg\" alt=\"Preview image\" width=\"600\"> </p>",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:mobile\"",
+    "dev:web": "cd web && npm run dev -- --host",
+    "dev:mobile": "cd mobile && npm run dev -- --port 5174 --host"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yldst-dev/Pixframe.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/yldst-dev/Pixframe/issues"
+  },
+  "homepage": "https://github.com/yldst-dev/Pixframe#readme",
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

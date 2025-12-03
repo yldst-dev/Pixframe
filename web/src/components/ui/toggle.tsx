@@ -26,50 +26,50 @@ const Toggle: React.FC<ToggleProps> = ({
     md: {
       switch: 'w-10 h-6',
       thumb: 'w-4 h-4',
-      translate: checked ? 'translate-x-5' : 'translate-x-1'
+      translate: checked ? 'translate-x-4' : 'translate-x-0.5'
     }
   };
 
   const currentSize = toggleSizes[size];
 
   return (
-    <div className="flex items-start space-x-3">
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        disabled={disabled}
-        onClick={() => !disabled && onChange(!checked)}
-        className={`
-          relative inline-flex shrink-0 cursor-pointer rounded-full border-2 border-transparent 
-          transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 
-          focus:ring-blue-500 focus:ring-offset-2 mt-0.5
-          ${checked 
-            ? 'bg-blue-600' 
-            : 'bg-gray-200 dark:bg-gray-600'
-          }
-          ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-          ${currentSize.switch}
-        `}
-      >
-        <span
+    <div className="flex items-start space-x-3" onClick={() => !disabled && onChange(!checked)}>
+      <div className="relative flex items-center">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={checked}
+          disabled={disabled}
           className={`
-            pointer-events-none inline-block rounded-full bg-white shadow-lg 
-            transform ring-0 transition duration-200 ease-in-out mt-0.5
-            ${currentSize.thumb} ${currentSize.translate}
+            relative inline-flex shrink-0 cursor-pointer border-2 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-0
+            ${checked 
+              ? 'bg-primary border-primary' 
+              : 'bg-input border-input'
+            }
+            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+            ${currentSize.switch}
           `}
-        />
-      </button>
+        >
+          <span
+            className={`
+              pointer-events-none inline-block bg-background shadow-none
+              transform ring-0 transition duration-200 ease-in-out
+              ${currentSize.thumb} ${currentSize.translate}
+              mt-[2px]
+            `}
+          />
+        </button>
+      </div>
       
       {(label || description) && (
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 cursor-pointer">
           {label && (
-            <label className="block text-sm font-medium text-gray-900 dark:text-white cursor-pointer">
+            <label className="block text-sm font-medium text-foreground cursor-pointer select-none">
               {label}
             </label>
           )}
           {description && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5 select-none">
               {description}
             </p>
           )}

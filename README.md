@@ -1,100 +1,68 @@
-# Preview Image
+# Pixframe (v2.0.0)
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/yldst-dev/exif-frame-pc/refs/heads/main/preview%20image.jpg" alt="Preview image" width="600">
-</p>
+<div align="center">
+  <img src="preview image.jpg" width="50%" alt="preview" />
+</div>
 
-# EXIF Frame Web App
+Pixframe은 사진의 EXIF 메타데이터를 활용하여 아름다운 프레임을 입혀주는 웹 애플리케이션입니다. 사진작가와 애호가들이 자신의 작품 정보를 세련된 방식으로 공유할 수 있도록 돕습니다.
 
-<p align="center">
-  📸 → 🖼️ with EXIF metadata
-</p>
+## 주요 기능
 
-A modern web application that adds beautiful frames with EXIF metadata to your photos. This is a redesigned version of the original [EXIF Frame](https://exif-frame.yuru.cam) with enhanced user experience and desktop-focused interface.
+### 1. 다양한 프레임 테마
+*   **다양한 레이아웃**: 미니멀한 한 줄 텍스트부터 폴라로이드 스타일, 필름 스트립 등 다양한 테마 제공
+*   **실시간 미리보기**: 테마 적용 결과를 즉시 확인 가능
+*   **커스터마이징**: 배경색, 폰트, 여백, 텍스트 색상 등 세부 옵션 조절 가능
 
-## ✨ Features
+### 2. 강력한 메타데이터 처리
+*   **자동 감지**: 업로드된 사진의 EXIF 데이터(카메라 모델, 렌즈, 조리개, 셔터스피드, ISO 등) 자동 추출
+*   **메타데이터 편집**: 잘못되거나 누락된 정보 수동 수정 가능
+*   **전역 설정**: 여러 사진에 동일한 카메라/렌즈 정보 일괄 적용 가능
 
-- **16 Beautiful Themes**: Choose from various frame styles including minimalist, vintage, and custom designs
-- **Intuitive Interface**: Modern desktop-optimized UI with sidebar navigation
-- **Batch Processing**: Download multiple photos as a ZIP file
-- **Theme Customization**: Customize colors, fonts, and layout options
-- **EXIF Data Management**: Automatic extraction and display of camera metadata
-- **Multiple Languages**: Support for Korean, English, Japanese, and Chinese
-- **Dark Mode**: Built-in dark theme support
+### 3. 반응형 디자인 (Web & Mobile)
+*   **통합된 경험**: PC와 모바일 환경을 자동으로 감지하여 최적화된 UI 제공
+*   **모바일 최적화**: 터치 인터페이스에 맞춘 제스처 및 레이아웃 지원
+*   **반응형 뷰**: 화면 크기에 따라 유동적으로 변하는 그리드 및 미리보기
 
-## 🖥️ Desktop Only
+### 4. 내보내기 및 공유
+*   **고해상도 출력**: 원본 화질을 유지하며 프레임 합성
+*   **일괄 다운로드**: 여러 장의 사진을 한 번에 처리하고 ZIP 파일로 다운로드 (모바일 지원)
+*   **포맷 설정**: JPG/PNG 포맷 선택 및 압축률(Quality) 조절
 
-This application is optimized for desktop use only. Mobile users will be redirected to the [original EXIF Frame](https://exif-frame.yuru.cam) for the best mobile experience.
+### 5. 기타 편의 기능
+*   **다국어 지원**: 한국어, 영어, 일본어, 중국어 지원
+*   **다크 모드**: 눈이 편안한 다크 테마 지원
+*   **오프라인 지원**: PWA(Progressive Web App) 기술을 활용한 오프라인 사용 가능성
 
-## 🚀 Getting Started
+## 기술 스택
 
-### Prerequisites
+*   **Frontend**: React, TypeScript, Vite
+*   **State Management**: Zustand
+*   **Styling**: Tailwind CSS
+*   **Image Processing**: Canvas API, EXIFReader
+*   **Deployment**: Vercel
 
-- Node.js 18+
-- npm or yarn
+## 시작하기
 
-### Installation
+### 설치 및 실행
 
-1. Clone the repository
-```bash
-git clone https://github.com/yldst-dev/exif-frame-pc.git
-cd exif-frame-pc
-```
+1.  저장소 클론
+    ```bash
+    git clone https://github.com/yldst-dev/Pixframe
+    ```
+2.  의존성 설치
+    ```bash
+    cd pixframe/web
+    npm install
+    ```
+3.  개발 서버 실행
+    ```bash
+    npm run dev
+    ```
 
-2. Install dependencies
-```bash
-cd web
-npm install
-```
+### 배포
 
-3. Start the development server
-```bash
-npm run dev
-```
+Vercel 등의 정적 호스팅 서비스에 쉽게 배포할 수 있습니다. `web` 디렉토리를 루트로 설정하고 빌드 명령어로 `npm run build`를 사용하세요.
 
-4. Open your browser and visit `http://localhost:3000`
+## 라이선스
 
-### Building for Production
-
-```bash
-npm run build
-```
-
-## 🛠️ Tech Stack
-
-- **React 18** with TypeScript
-- **Tailwind CSS** for styling
-- **Zustand** for state management
-- **React Router** for navigation
-- **Vite** for build tooling
-- **ExifReader** for metadata extraction
-
-## 📁 Project Structure
-
-```
-web/
-├── public/          # Static assets
-├── src/
-│   ├── components/  # React components
-│   ├── pages/      # Page components
-│   ├── themes/     # Frame themes
-│   ├── core/       # Core functionality
-│   ├── icons/      # Icon components
-│   └── locales/    # Internationalization
-└── ...
-```
-
-## 🔄 TODO
-
-- [ ] **Electron App**: Build desktop application using Electron for better native experience
-- [ ] **Performance Optimization**: Implement image processing optimization for large files
-- [ ] **Mobile Support**: Add responsive mobile interface and remove desktop-only restriction
-
-## Contributors
-
-Special thanks to all the people who have contributed to this project:
-
-- [rhea-so](https://github.com/rhea-so)
-- [longfin](https://github.com/longfin)
-- [KelvinPuyam](https://github.com/KelvinPuyam)
-- [SJC08](https://github.com/SJC08)
+이 프로젝트는 GPL-3.0 라이선스를 따릅니다.

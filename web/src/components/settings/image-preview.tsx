@@ -178,15 +178,15 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
     <div className="flex flex-col h-full">
 
       {/* Preview Image - Main content area */}
-      <div className="flex-1 flex flex-col p-4 min-h-0">
+      <div className="flex-1 flex flex-col p-0 min-h-0">
         <div 
-          className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden min-h-0 image-preview-container"
+          className="flex-1 bg-gray-100 dark:bg-gray-800 overflow-hidden min-h-0 image-preview-container"
           style={{
             backgroundColor: darkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(243, 244, 246, 0.8)'
           }}
         >
           {themedPreview ? (
-            <div className="w-full h-full p-4 image-preview-container">
+            <div className="w-full h-full p-0 image-preview-container">
               <img
                 src={themedPreview}
                 alt={`Export preview - ${selectedPhoto.file.name}`}

@@ -6,19 +6,30 @@ import GitHubIcon from '../icons/github.icon';
 import themes, { useThemeStore } from '../themes';
 import render from '../core/drawing/render';
 import Button from './ui/button';
+import IconButton from './ui/icon-button';
 import JSZip from 'jszip';
+import SettingsIcon from '../icons/settings.icon';
+import ImageIcon from '../icons/image.icon';
 
-interface TopToolbarProps {}
+interface TopToolbarProps {
+  isPhotoSidebarOpen: boolean;
+  setIsPhotoSidebarOpen: (isOpen: boolean) => void;
+  isSettingsPanelOpen: boolean;
+  setIsSettingsPanelOpen: (isOpen: boolean) => void;
+}
 
-const TopToolbar: React.FC<TopToolbarProps> = () => {
+const TopToolbar: React.FC<TopToolbarProps> = ({
+  isPhotoSidebarOpen,
+  setIsPhotoSidebarOpen,
+  isSettingsPanelOpen,
+  setIsSettingsPanelOpen
+}) => {
     const { t } = useTranslation();
     const store = useStore();
     const { photos, selectedThemeName } = store;
     const themeStore = useThemeStore();
     const [showDownloadModal, setShowDownloadModal] = React.useState(false);
     const [downloadProgress, setDownloadProgress] = React.useState({ current: 0, total: 0 });
-
-
 
     const handleDownloadAll = async () => {
         if (!selectedThemeName || photos.length === 0) return;
@@ -100,84 +111,85 @@ const TopToolbar: React.FC<TopToolbarProps> = () => {
             URL.revokeObjectURL(link.href);
             
         } catch (error) {
-            console.error('Failed to download all images:', error);
+            console.error('Download failed:', error);
+            alert(t('error.download_failed', 'Download failed. Please try again.'));
         } finally {
-            // Close modal after a short delay
-            setTimeout(() => {
-                setShowDownloadModal(false);
-                setDownloadProgress({ current: 0, total: 0 });
-            }, 1000);
+            setShowDownloadModal(false);
+            setDownloadProgress({ current: 0, total: 0 });
         }
     };
 
     return (
-        <div className="h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center relative px-6">
-            {/* Left Section - GitHub Link */}
-            <div className="flex items-center space-x-3">
-                <a
-                    href="https://github.com/yldst-dev/exif-frame-pc"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-2 px-3 py-1.5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                    title={t('github.link', 'GitHub에서 보기')}
+        <header className="bg-background border-b border-border h-14 flex items-center px-4 justify-between shrink-0 z-30 relative">
+            <div className="flex items-center space-x-4">
+                <IconButton 
+                  onClick={() => setIsPhotoSidebarOpen(!isPhotoSidebarOpen)}
+                  variant={isPhotoSidebarOpen ? 'primary' : 'outline'}
+                  size="sm"
+                  tooltip={t('toolbar.toggle_sidebar', 'Toggle Sidebar')}
                 >
-                    <GitHubIcon size={20} />
-                    <span className="text-sm font-medium">GitHub</span>
-                </a>
+                  <ImageIcon size={18} />
+                </IconButton>
+
+                <div className="flex items-center space-x-2">
+                    <img src="/logo.png" alt="PixFrame" className="w-8 h-8" />
+                    <h1 className="text-xl font-bold tracking-tight uppercase">PixFrame</h1>
+                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-primary text-primary-foreground uppercase tracking-wider">BETA</span>
+                </div>
             </div>
 
-            {/* Center Section - App Title - Absolutely positioned center */}
-            <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                <h1 className="text-lg font-semibold text-gray-900 dark:text-white whitespace-nowrap">
-                    EXIF Frame-PC
-                </h1>
-            </div>
+            <div className="flex items-center space-x-3">
+                <IconButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open('https://github.com/yldst-dev/Pixframe', '_blank')}
+                >
+                    <GitHubIcon size={18} />
+                </IconButton>
 
-            {/* Right Section - Download Button */}
-            <div className="flex items-center space-x-2 ml-auto">
-                {photos.length > 0 && (
-                    <Button
-                        variant="secondary"
-                        onClick={handleDownloadAll}
-                    >
-                        <DownloadIcon size={16} />
-                        <span className="ml-1.5">{t('toolbar.download-all', 'Download All')}</span>
-                    </Button>
-                )}
+                <div className="h-6 w-px bg-border mx-2" />
+
+                <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleDownloadAll}
+                    disabled={photos.length === 0}
+                    className="uppercase text-xs font-bold tracking-wide"
+                >
+                    <span className="mr-2"><DownloadIcon size={14} /></span>
+                    {t('toolbar.download_all', 'Download All')}
+                </Button>
+
+                <div className="h-6 w-px bg-border mx-2" />
+
+                <IconButton 
+                  onClick={() => setIsSettingsPanelOpen(!isSettingsPanelOpen)}
+                  variant={isSettingsPanelOpen ? 'primary' : 'outline'}
+                  size="sm"
+                  tooltip={t('toolbar.toggle_settings', 'Toggle Settings')}
+                >
+                  <SettingsIcon size={18} />
+                </IconButton>
             </div>
 
             {/* Download Progress Modal */}
             {showDownloadModal && (
-                <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-xl border border-gray-200 dark:border-gray-700 max-w-md w-full mx-4">
-                        <div className="text-center">
-                            <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
-                                <DownloadIcon size={24} />
-                            </div>
-                            
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                                {t('download.batch-title', '일괄 다운로드 중')}
-                            </h3>
-                            
-                            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                                {t('download.batch-description', `${downloadProgress.total}개의 사진을 ${selectedThemeName}으로 일괄 다운로드 합니다.`)}
-                            </p>
-                            
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
-                                <div 
-                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                    style={{ width: `${downloadProgress.total > 0 ? (downloadProgress.current / downloadProgress.total) * 100 : 0}%` }}
-                                ></div>
-                            </div>
-                            
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {downloadProgress.current} / {downloadProgress.total} {t('download.photos', '사진')}
-                            </p>
+                <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                    <div className="bg-card border border-border p-8 max-w-sm w-full shadow-2xl">
+                        <h3 className="text-lg font-bold mb-4 uppercase tracking-tight">{t('download.preparing', 'Preparing Download...')}</h3>
+                        <div className="w-full bg-secondary h-2 mb-4 overflow-hidden">
+                            <div 
+                                className="bg-primary h-full transition-all duration-300 ease-out"
+                                style={{ width: `${(downloadProgress.current / downloadProgress.total) * 100}%` }}
+                            />
                         </div>
+                        <p className="text-sm text-muted-foreground font-mono text-right">
+                            {downloadProgress.current} / {downloadProgress.total}
+                        </p>
                     </div>
                 </div>
             )}
-        </div>
+        </header>
     );
 };
 

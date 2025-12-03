@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useStore } from '../../store';
 import Toggle from '../ui/toggle';
 import Button from '../ui/button';
+import Slider from '../ui/slider';
 
 const ExportSettings = () => {
   const { t } = useTranslation();
@@ -71,13 +72,12 @@ const ExportSettings = () => {
           description={t('export.quality.description', 'Higher quality = larger file size')}
         >
           <div className="space-y-2">
-            <input
-              type="range"
-              min="0.1"
-              max="1"
-              step="0.1"
+            <Slider
+              min={0.1}
+              max={1}
+              step={0.1}
               value={quality}
-              onChange={(e) => setQuality(parseFloat(e.target.value))}
+              onChange={setQuality}
               className="w-full"
             />
             <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">

@@ -55,7 +55,7 @@ const MobileNotSupportedPage: React.FC = () => {
         {/* GitHub Link */}
         <div className="mt-4">
           <a
-            href="https://github.com/yldst-dev/exif-frame-pc"
+            href="https://github.com/yldst-dev/Pixframe"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
