@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store';
 import themes, { useThemeStore } from '../themes';
@@ -7,12 +7,14 @@ import ImagePreview from './settings/image-preview';
 import Loading from '../pages/convert/components/loading';
 import AddPhotoErrorDialog from '../pages/convert/components/add-photo-error.dialog';
 import DownloadWarningDialog from '../pages/convert/components/download-warning.dialog';
+import DeleteAllDialog from '../pages/convert/components/delete-all.dialog';
 import Photo from '../core/photo';
 import Button from './ui/button';
 import IconButton from './ui/icon-button';
 import AddIcon from '../icons/add.icon';
 import SettingsIcon from '../icons/settings.icon';
 import DownloadIcon from '../icons/download.icon';
+import TrashIcon from '../icons/trash.icon';
 import render from '../core/drawing/render';
 import JSZip from 'jszip';
 
@@ -26,6 +28,7 @@ const MobileLayout = () => {
   const [showDownloadWarning, setShowDownloadWarning] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState({ current: 0, total: 0 });
   const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
 
   const handleAddPhotos = useCallback(async (files: File[]) => {
     setLoading(true);
@@ -161,6 +164,46 @@ const MobileLayout = () => {
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleDeleteOne = useCallback((index?: number) => {
+    const targetIndex = index ?? selectedImageIndex;
+    if (targetIndex === null) return;
+    
+    // Remove the photo from the store
+    const newPhotos = [...photos];
+    newPhotos.splice(targetIndex, 1);
+    setPhotos(newPhotos);
+    
+    // Adjust selected index
+    if (newPhotos.length === 0) {
+      setSelectedImageIndex(null);
+    } else if (selectedImageIndex !== null && selectedImageIndex >= newPhotos.length) {
+      setSelectedImageIndex(newPhotos.length - 1);
+    }
+  }, [photos, selectedImageIndex, setPhotos]);
+
+  // Listen for delete event from ImagePreview
+  useEffect(() => {
+    const handleDeleteEvent = (e: CustomEvent<{ index: number }>) => {
+      handleDeleteOne(e.detail.index);
+    };
+    
+    window.addEventListener('delete-current-photo' as any, handleDeleteEvent as any);
+    return () => {
+      window.removeEventListener('delete-current-photo' as any, handleDeleteEvent as any);
+    };
+  }, [handleDeleteOne]);
+
+  const handleDeleteAll = useCallback(() => {
+    if (photos.length === 0) return;
+    setShowDeleteAllDialog(true);
+  }, [photos.length]);
+
+  const confirmDeleteAll = useCallback(() => {
+    setPhotos([]);
+    setSelectedImageIndex(null);
+  }, [setPhotos]);
+
   return (
     <div className="h-[100dvh] flex flex-col bg-background overflow-hidden fixed inset-0">
       {/* Top Toolbar - Simplified for Mobile */}
@@ -265,6 +308,16 @@ const MobileLayout = () => {
                    <img src={photo.thumbnail} className="w-full h-full object-cover" alt="" />
                  </button>
                ))}
+
+               <button 
+                 onClick={handleDeleteAll}
+                 className="w-16 h-16 border border-border border-dashed flex items-center justify-center shrink-0 hover:bg-destructive/10 bg-red-50 transition-colors group"
+                 title={t('delete.all', 'Delete All')}
+               >
+                 <div className="flex items-center justify-center w-full h-full text-destructive transition-colors">
+                   <TrashIcon size={24} />
+                 </div>
+               </button>
              </div>
            </div>
         )}
@@ -313,6 +366,13 @@ const MobileLayout = () => {
 
       <Loading />
       <AddPhotoErrorDialog />
+      
+      {/* Delete All Dialog */}
+      <DeleteAllDialog
+        isOpen={showDeleteAllDialog}
+        onClose={() => setShowDeleteAllDialog(false)}
+        onConfirm={confirmDeleteAll}
+      />
     </div>
   );
 };
