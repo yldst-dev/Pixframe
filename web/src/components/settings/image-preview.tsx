@@ -2,6 +2,8 @@ import React, { useMemo, useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import ImageIcon from '../../icons/image.icon';
 import Button from '../ui/button';
+import IconButton from '../ui/icon-button';
+import TrashIcon from '../../icons/trash.icon';
 import { useStore } from '../../store';
 import themes, { useThemeStore } from '../../themes';
 import render from '../../core/drawing/render';
@@ -284,17 +286,33 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
         </div>
 
         {/* Download Button - optimized with useCallback */}
-        <Button 
-          variant="primary" 
-          className="w-full"
-          disabled={!themedPreview}
-          onClick={handleDownloadClick}
-        >
-          {themedPreview
-            ? t('preview.download-single', '이 사진 다운로드') 
-            : t('preview.generating', '생성 중...')
-          }
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="primary" 
+            className="flex-1"
+            disabled={!themedPreview}
+            onClick={handleDownloadClick}
+          >
+            {themedPreview
+              ? t('preview.download-single', '이 사진 다운로드') 
+              : t('preview.generating', '생성 중...')
+            }
+          </Button>
+          
+          <IconButton
+            variant="ghost"
+            className="h-10 w-10 bg-red-50 hover:bg-red-100 text-red-600 border-red-100 rounded-md"
+            disabled={!selectedPhoto}
+            onClick={() => {
+              const event = new CustomEvent('delete-current-photo', { 
+                detail: { index: store.photos.indexOf(selectedPhoto) } 
+              });
+              window.dispatchEvent(event);
+            }}
+          >
+            <TrashIcon size={20} />
+          </IconButton>
+        </div>
       </div>
 
       {/* Modal for full-size preview */}
