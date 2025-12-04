@@ -6,6 +6,7 @@ import Slider from '../../components/ui/slider';
 import AddIcon from '../../icons/add.icon';
 import SettingsIcon from '../../icons/settings.icon';
 import DownloadIcon from '../../icons/download.icon';
+import TrashIcon from '../../icons/trash.icon';
 import ImageIcon from '../../icons/image.icon';
 import GitHubIcon from '../../icons/github.icon';
 
@@ -70,6 +71,30 @@ const ComponentsPage = () => {
                 <Button variant="primary" disabled>Disabled Primary</Button>
               </div>
             </div>
+            <div className="p-6 border border-border bg-card space-y-4">
+              <h3 className="text-sm font-mono text-muted-foreground mb-4">Icon Buttons</h3>
+              <div className="flex flex-wrap gap-4 items-center">
+                <IconButton variant="ghost" size="sm">
+                  <AddIcon size={20} />
+                </IconButton>
+                <IconButton variant="ghost" size="sm">
+                  <SettingsIcon size={20} />
+                </IconButton>
+                <IconButton variant="ghost" size="sm">
+                  <DownloadIcon size={20} />
+                </IconButton>
+                <IconButton variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                  <TrashIcon size={20} />
+                </IconButton>
+                <IconButton 
+                  variant="ghost" 
+                  size="sm" 
+                  className="bg-red-50 hover:bg-red-100 text-red-600 border-red-100"
+                >
+                  <TrashIcon size={20} />
+                </IconButton>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -99,6 +124,15 @@ const ComponentsPage = () => {
                 <div className="font-mono text-xs text-muted-foreground">DANGER</div>
                 <IconButton variant="danger"><DownloadIcon size={20} /></IconButton>
               </div>
+            </div>
+          </div>
+
+          <div className="p-6 border border-border bg-card space-y-4">
+            <h3 className="text-sm font-mono text-muted-foreground mb-4">Sizes</h3>
+            <div className="flex flex-wrap gap-4 items-center">
+              <Button size="sm">Small</Button>
+              <Button size="md">Medium</Button>
+              <Button size="lg">Large</Button>
             </div>
           </div>
         </section>
