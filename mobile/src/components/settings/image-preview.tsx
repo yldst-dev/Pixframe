@@ -301,7 +301,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
           
           <IconButton
             variant="ghost"
-            className="h-10 w-10 bg-red-50 hover:bg-red-100 text-red-600 border-red-100 rounded-md"
+            className="h-10 w-10 !bg-red-50 hover:!bg-red-100 text-red-600 !border-red-100 rounded-md transition-colors"
             disabled={!selectedPhoto}
             onClick={() => {
               // Dispatch custom event for deletion since we don't have direct access to setPhotos here
