@@ -43,6 +43,7 @@
   "root.add-photo": "添加照片",
   "root.download": "下载",
   "root.download-all": "下载全部",
+  "download.settings.title": "下载设置",
   "root.bug-report": "错误报告",
   "root.feature-request": "功能请求",
   "root.loaded-photos": "加载的照片",

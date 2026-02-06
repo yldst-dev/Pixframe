@@ -2,7 +2,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../../store';
 import Toggle from '../ui/toggle';
-import Button from '../ui/button';
 import Slider from '../ui/slider';
 
 const ExportSettings = () => {
@@ -49,8 +48,7 @@ const ExportSettings = () => {
 
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Output Format */}
+    <div className="space-y-6">
       <div className="space-y-4">
         <h3 className="font-medium text-gray-900 dark:text-white">
           {t('export.format', 'Output Format')}
@@ -137,10 +135,8 @@ const ExportSettings = () => {
         </SettingItem>
       </div>
 
-      {/* Divider */}
       <div className="border-t border-gray-200 dark:border-gray-700"></div>
 
-      {/* Metadata Display */}
       <div className="space-y-4">
         <h3 className="font-medium text-gray-900 dark:text-white">
           {t('export.metadata', 'Metadata Display')}
@@ -167,10 +163,8 @@ const ExportSettings = () => {
         </div>
       </div>
 
-      {/* Divider */}
       <div className="border-t border-gray-200 dark:border-gray-700"></div>
 
-      {/* Advanced Options */}
       <div className="space-y-4">
         <h3 className="font-medium text-gray-900 dark:text-white">
           {t('export.advanced', 'Advanced Options')}
@@ -185,22 +179,6 @@ const ExportSettings = () => {
         </div>
       </div>
 
-      {/* Export Actions */}
-      <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
-        <Button 
-          variant="primary" 
-          className="w-full"
-        >
-          {t('export.apply-to-all', 'Apply to All Images')}
-        </Button>
-        
-        <Button 
-          variant="secondary" 
-          className="w-full"
-        >
-          {t('export.reset-defaults', 'Reset to Defaults')}
-        </Button>
-      </div>
     </div>
   );
 };

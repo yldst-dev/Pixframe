@@ -163,60 +163,36 @@ const STRAP_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: Sto
   });
   const context = canvas.getContext('2d')!;
   context.textBaseline = 'middle';
+  const topLineY = canvas.height - PADDING_BOTTOM / 2 - FONT_SIZE / 2;
+  const bottomLineY = canvas.height - PADDING_BOTTOM / 2 + FONT_SIZE / 2;
 
-  // LEFT FIRST
   context.textAlign = 'left';
 
-  // ISO, Focal Length, F-Number, Exposure Time
   context.font = `normal 500 ${FONT_SIZE}px Barlow`;
   context.fillStyle = PRIMARY_TEXT_COLOR;
+  const leftPrimaryText = store.disableExposureMeter ? '' : text1;
 
   if (!store.disableExposureMeter) {
-    context.fillText(text1, FONT_SIZE, canvas.height - PADDING_BOTTOM / 2 - FONT_SIZE / 2);
+    context.fillText(text1, FONT_SIZE, topLineY);
   }
+  const leftPrimaryWidth = leftPrimaryText ? context.measureText(leftPrimaryText).width : 0;
 
-  // Shot by
+  const leftSecondaryText = ARTIST ? `Shot by © ${ARTIST}` : text3;
   if (ARTIST) {
     context.font = `normal ${SECONDARY_TEXT_FONT_WEIGHT} ${FONT_SIZE}px Barlow`;
     context.fillStyle = SECONDARY_TEXT_COLOR;
-    context.fillText(`Shot by © ${ARTIST}`, FONT_SIZE, canvas.height - PADDING_BOTTOM / 2 + FONT_SIZE / 2);
+    context.fillText(leftSecondaryText, FONT_SIZE, bottomLineY);
   } else {
     context.font = `normal ${SECONDARY_TEXT_FONT_WEIGHT} ${FONT_SIZE}px Barlow`;
     context.fillStyle = SECONDARY_TEXT_COLOR;
-    context.fillText(text3, FONT_SIZE, canvas.height - PADDING_BOTTOM / 2 + FONT_SIZE / 2);
+    context.fillText(leftSecondaryText, FONT_SIZE, bottomLineY);
   }
+  const leftSecondaryWidth = leftSecondaryText ? context.measureText(leftSecondaryText).width : 0;
+  const leftWidth = Math.max(leftPrimaryWidth, leftSecondaryWidth);
 
-  // RIGHT SECOND
-  context.textAlign = 'right';
-
-  // Maker, Model
-  context.fillStyle = PRIMARY_TEXT_COLOR;
-  context.font = `normal 500 ${FONT_SIZE}px Barlow`;
-  const makerModelText = text2;
-  const topWidth = context.measureText(makerModelText).width;
-  context.fillText(makerModelText, canvas.width - FONT_SIZE, canvas.height - PADDING_BOTTOM / 2 - FONT_SIZE / 2);
-
-  // Lens Model
-  context.fillStyle = SECONDARY_TEXT_COLOR;
-  context.font = `normal ${SECONDARY_TEXT_FONT_WEIGHT} ${FONT_SIZE}px Barlow`;
-  const lensModelText = text4;
-  const bottomWidth = context.measureText(lensModelText).width;
-  context.fillText(lensModelText, canvas.width - FONT_SIZE, canvas.height - PADDING_BOTTOM / 2 + FONT_SIZE / 2);
-
-  // DRAW LINE
-  context.beginPath();
-  context.moveTo(canvas.width - Math.max(topWidth, bottomWidth) - FONT_SIZE * 2, canvas.height - PADDING_BOTTOM / 2 - FONT_SIZE);
-  context.lineTo(canvas.width - Math.max(topWidth, bottomWidth) - FONT_SIZE * 2, canvas.height - PADDING_BOTTOM / 2 + FONT_SIZE);
-  context.strokeStyle = SECONDARY_TEXT_COLOR;
-  context.lineWidth = 2;
-  context.stroke();
-
-  // DRAW ICON
   let TARGET_LOGO_HEIGHT = FONT_SIZE * 2;
   const TARGET_LOGO_WIDTH = 400;
-
   let logo: HTMLImageElement | undefined;
-
   const maker = overrideExifMetadata()?.make || photo.metadata.make;
   const model = overrideExifMetadata()?.model || photo.metadata.model;
 
@@ -288,7 +264,6 @@ const STRAP_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: Sto
     logo = DARK_MODE ? supportLogo.get('RICOH_DARK') : supportLogo.get('RICOH_LIGHT');
   }
 
-  // 팬탁스는 리코의 자회사 같음..? RICO ~~~ PENTAX 이런 식으로 결과물이 나오는데, 이 경우 RICO 보다 PENTAX가 우선적으로 쓰여야 함
   if (maker?.toUpperCase().includes('PENTAX') || model?.toUpperCase().includes('PENTAX')) {
     logo = DARK_MODE ? supportLogo.get('PENTAX_DARK') : supportLogo.get('PENTAX_LIGHT');
   }
@@ -305,19 +280,112 @@ const STRAP_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: Sto
     logo = DARK_MODE ? supportLogo.get('SAMSUNG_DARK') : supportLogo.get('SAMSUNG_LIGHT');
   }
 
-  if (logo) {
-    let LOGO_WIDTH = (logo.width / logo.height) * TARGET_LOGO_HEIGHT;
-    if (LOGO_WIDTH > TARGET_LOGO_WIDTH) {
-      LOGO_WIDTH = TARGET_LOGO_WIDTH;
-      TARGET_LOGO_HEIGHT = (logo.height / logo.width) * TARGET_LOGO_WIDTH;
+  context.textAlign = 'right';
+
+  context.fillStyle = PRIMARY_TEXT_COLOR;
+  context.font = `normal 500 ${FONT_SIZE}px Barlow`;
+  let makerModelText = text2;
+  let topWidth = makerModelText ? context.measureText(makerModelText).width : 0;
+
+  context.fillStyle = SECONDARY_TEXT_COLOR;
+  context.font = `normal ${SECONDARY_TEXT_FONT_WEIGHT} ${FONT_SIZE}px Barlow`;
+  const lensModelText = text4;
+  let bottomWidth = lensModelText ? context.measureText(lensModelText).width : 0;
+
+  let rightWidth = Math.max(topWidth, bottomWidth);
+  let rightBlockLeft = canvas.width - FONT_SIZE - rightWidth;
+  let maxLogoRight = rightBlockLeft - FONT_SIZE * 2;
+  const minLogoLeft = FONT_SIZE + leftWidth + FONT_SIZE;
+  let availableLogoWidth = maxLogoRight - minLogoLeft;
+
+  if (logo && availableLogoWidth <= 0) {
+    const compactModelText = (photo.model || '').trim();
+    if (compactModelText && compactModelText !== makerModelText) {
+      makerModelText = compactModelText;
+      context.font = `normal 500 ${FONT_SIZE}px Barlow`;
+      topWidth = context.measureText(makerModelText).width;
+      rightWidth = Math.max(topWidth, bottomWidth);
+      rightBlockLeft = canvas.width - FONT_SIZE - rightWidth;
+      maxLogoRight = rightBlockLeft - FONT_SIZE * 2;
+      availableLogoWidth = maxLogoRight - minLogoLeft;
     }
-    context.drawImage(
-      logo,
-      canvas.width - Math.max(topWidth, bottomWidth) - FONT_SIZE * 2 - FONT_SIZE - LOGO_WIDTH,
-      canvas.height - PADDING_BOTTOM / 2 - TARGET_LOGO_HEIGHT / 2,
-      LOGO_WIDTH,
-      TARGET_LOGO_HEIGHT
-    );
+    if (availableLogoWidth <= 0) {
+      makerModelText = '';
+      topWidth = 0;
+      rightWidth = Math.max(topWidth, bottomWidth);
+      rightBlockLeft = canvas.width - FONT_SIZE - rightWidth;
+      maxLogoRight = rightBlockLeft - FONT_SIZE * 2;
+      availableLogoWidth = maxLogoRight - minLogoLeft;
+    }
+  }
+
+  // If there is no horizontal room between the left/right text blocks, we will draw the logo in a
+  // fallback position (top-right). In that mode, keep the top-right text empty so the logo doesn't
+  // paint over the maker/model line (common on narrow portrait exports).
+  const useFallbackLogoPlacement = Boolean(logo) && availableLogoWidth <= 0;
+  if (useFallbackLogoPlacement && makerModelText) {
+    makerModelText = '';
+    topWidth = 0;
+    rightWidth = Math.max(topWidth, bottomWidth);
+    rightBlockLeft = canvas.width - FONT_SIZE - rightWidth;
+    maxLogoRight = rightBlockLeft - FONT_SIZE * 2;
+    availableLogoWidth = maxLogoRight - minLogoLeft;
+  }
+
+  context.fillStyle = PRIMARY_TEXT_COLOR;
+  context.font = `normal 500 ${FONT_SIZE}px Barlow`;
+  if (makerModelText) {
+    context.fillText(makerModelText, canvas.width - FONT_SIZE, topLineY);
+  }
+
+  context.fillStyle = SECONDARY_TEXT_COLOR;
+  context.font = `normal ${SECONDARY_TEXT_FONT_WEIGHT} ${FONT_SIZE}px Barlow`;
+  if (lensModelText) {
+    context.fillText(lensModelText, canvas.width - FONT_SIZE, bottomLineY);
+  }
+
+  const hasRightText = Boolean(makerModelText || lensModelText);
+  const dividerX = rightBlockLeft - FONT_SIZE;
+  if (hasRightText) {
+    context.beginPath();
+    context.moveTo(dividerX, topLineY - FONT_SIZE / 2);
+    context.lineTo(dividerX, bottomLineY + FONT_SIZE / 2);
+    context.strokeStyle = SECONDARY_TEXT_COLOR;
+    context.lineWidth = 2;
+    context.stroke();
+  }
+
+  if (logo) {
+    if (availableLogoWidth > 0) {
+      let LOGO_WIDTH = (logo.width / logo.height) * TARGET_LOGO_HEIGHT;
+      const maxLogoWidth = Math.min(TARGET_LOGO_WIDTH, availableLogoWidth);
+      if (LOGO_WIDTH > maxLogoWidth) {
+        LOGO_WIDTH = maxLogoWidth;
+        TARGET_LOGO_HEIGHT = (logo.height / logo.width) * LOGO_WIDTH;
+      }
+      context.drawImage(
+        logo,
+        maxLogoRight - LOGO_WIDTH,
+        canvas.height - PADDING_BOTTOM / 2 - TARGET_LOGO_HEIGHT / 2,
+        LOGO_WIDTH,
+        TARGET_LOGO_HEIGHT
+      );
+    } else {
+      let fallbackHeight = FONT_SIZE * 1.4;
+      let LOGO_WIDTH = (logo.width / logo.height) * fallbackHeight;
+      const fallbackMaxWidth = Math.min(TARGET_LOGO_WIDTH, Math.max(bottomWidth, FONT_SIZE * 3), canvas.width - FONT_SIZE * 2);
+      if (LOGO_WIDTH > fallbackMaxWidth) {
+        LOGO_WIDTH = fallbackMaxWidth;
+        fallbackHeight = (logo.height / logo.width) * LOGO_WIDTH;
+      }
+      context.drawImage(
+        logo,
+        canvas.width - FONT_SIZE - LOGO_WIDTH,
+        topLineY - fallbackHeight / 2,
+        LOGO_WIDTH,
+        fallbackHeight
+      );
+    }
   }
 
   return canvas;

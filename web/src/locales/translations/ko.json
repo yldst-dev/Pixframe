@@ -43,6 +43,7 @@
   "root.add-photo": "사진 추가",
   "root.download": "다운로드",
   "root.download-all": "일괄 다운로드",
+  "download.settings.title": "다운로드 설정",
   "root.bug-report": "버그 제보",
   "root.feature-request": "기능 제안",
   "root.loaded-photos": "불러온 사진들",

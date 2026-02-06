@@ -9,6 +9,8 @@ import themes, { useThemeStore } from '../../themes';
 import render from '../../core/drawing/render';
 import { useDebounce } from '../../hooks/useDebounce';
 import { ImagePreviewProps } from '../../types';
+import DownloadSettingsModal from './download-settings-modal';
+import { getExportFormat } from '../../utils/export-format';
 
 const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
   const { t } = useTranslation();
@@ -19,12 +21,12 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [showDownloadSettings, setShowDownloadSettings] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
-  // 디바운스된 테마 옵션 - 300ms 딜레이로 렌더링 최적화
   const debouncedThemeOptions = useDebounce(themeStore.option, 300);
   
   
-  // Format file size - memoized for performance
   const formatFileSize = useCallback((bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -33,7 +35,6 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }, []);
   
-  // Generate full-resolution themed image for export - optimized with useCallback
   const generateExportPreview = useCallback(async () => {
     if (!selectedPhoto || !selectedThemeName) {
       setThemedPreview(null);
@@ -42,7 +43,6 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
       return;
     }
 
-    // 초기 로딩이나 사진 변경 시에만 로딩 표시
     const isInitialLoad = !themedPreview;
     
     if (isInitialLoad) {
@@ -59,33 +59,28 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
         throw new Error(`Theme "${selectedThemeName}" not found. Available themes: ${themes.map(t => t.name).join(', ')}`);
       }
 
-      // Create a Map with all required options and their default values
       const themeOptions = new Map();
       
-      // First, set all default values from theme options
       selectedTheme.options.forEach(option => {
         themeOptions.set(option.id, option.default);
       });
       
-      // Then override with user-configured values if they exist
       debouncedThemeOptions.forEach((value, key) => {
         if (selectedTheme.options.some(opt => opt.id === key)) {
           themeOptions.set(key, value);
         }
       });
 
-      // Use requestAnimationFrame for better performance
       await new Promise(resolve => requestAnimationFrame(resolve));
       
-      // Generate full-resolution image with theme applied
       const canvas = await render(selectedTheme.func, selectedPhoto, themeOptions, store);
       
       if (!canvas || canvas.width === 0 || canvas.height === 0) {
         throw new Error('Generated canvas is invalid');
       }
 
-      // Convert to data URL with high quality for preview and download
-      const dataUrl = canvas.toDataURL('image/jpeg', store.quality || 0.95);
+      const { mimeType, useJpeg } = getExportFormat(selectedPhoto.file.name, store.exportToJpeg);
+      const dataUrl = canvas.toDataURL(mimeType, useJpeg ? store.quality || 0.95 : undefined);
       
       setThemedPreview(dataUrl);
       
@@ -94,42 +89,86 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
       setGenerationError(error instanceof Error ? error.message : 'Unknown error occurred');
       setThemedPreview(null);
     } finally {
-      // 초기 로딩일 때만 로딩 상태 해제
       if (isInitialLoad) {
         setIsGenerating(false);
       }
     }
-  }, [selectedPhoto, selectedThemeName, debouncedThemeOptions, store.rerenderOptions, store.quality, themedPreview]);
+  }, [
+    selectedPhoto,
+    selectedThemeName,
+    debouncedThemeOptions,
+    store.rerenderOptions,
+    store.quality,
+    store.exportToJpeg,
+    store.enableFixImageWidth,
+    store.fixImageWidth,
+    store.showCameraMaker,
+    store.showCameraModel,
+    store.showLensModel,
+    themedPreview
+  ]);
 
   useEffect(() => {
     generateExportPreview();
   }, [generateExportPreview]);
 
-  // Handle image click to open modal
   const handleImageClick = useCallback(() => {
     setShowModal(true);
   }, []);
 
-  // Handle download click
-  const handleDownloadClick = useCallback(() => {
-    if (!themedPreview || !selectedPhoto) return;
-    
-    // Download the full-resolution export image
-    const link = document.createElement('a');
-    link.href = themedPreview;
-    
-    // Generate filename with theme name
-    const fileExtension = selectedPhoto.file.name.split('.').pop();
-    const baseFileName = selectedPhoto.file.name.replace(/\.[^/.]+$/, "");
-    const themeName = selectedThemeName.replace(/\s+/g, '_').toLowerCase();
-    link.download = `${baseFileName}_${themeName}.${store.exportToJpeg ? 'jpg' : fileExtension}`;
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [themedPreview, selectedPhoto, selectedThemeName, store.exportToJpeg]);
+  const handleOpenDownloadSettings = useCallback(() => {
+    if (!selectedPhoto || !selectedThemeName) return;
+    setShowDownloadSettings(true);
+  }, [selectedPhoto, selectedThemeName]);
 
-  // Handle ESC key to close modal - optimized with useCallback
+  const handleConfirmDownload = useCallback(async () => {
+    if (!selectedPhoto || !selectedThemeName || isDownloading) return;
+    setIsDownloading(true);
+    setShowDownloadSettings(false);
+    try {
+      const selectedTheme = themes.find(theme => theme.name === selectedThemeName);
+      if (!selectedTheme) {
+        throw new Error(`Theme "${selectedThemeName}" not found`);
+      }
+
+      const themeOptions = new Map();
+      selectedTheme.options.forEach(option => {
+        themeOptions.set(option.id, option.default);
+      });
+      themeStore.option.forEach((value, key) => {
+        if (selectedTheme.options.some(opt => opt.id === key)) {
+          themeOptions.set(key, value);
+        }
+      });
+
+      const canvas = await render(selectedTheme.func, selectedPhoto, themeOptions, store);
+      const { mimeType, extension, useJpeg } = getExportFormat(selectedPhoto.file.name, store.exportToJpeg);
+      const quality = useJpeg ? store.quality || 0.95 : undefined;
+      const dataUrl = canvas.toDataURL(mimeType, quality);
+
+      const baseFileName = selectedPhoto.file.name.replace(/\.[^/.]+$/, "");
+      const themeName = selectedThemeName.replace(/\s+/g, '_').toLowerCase();
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = `${baseFileName}_${themeName}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert(t('error.download_failed', 'Download failed. Please try again.'));
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [
+    isDownloading,
+    selectedPhoto,
+    selectedThemeName,
+    themeStore.option,
+    store,
+    t
+  ]);
+
   const handleEscKey = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       setShowModal(false);
@@ -145,7 +184,6 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
     }
   }, [showModal, handleEscKey]);
 
-  // Calculate dimensions and file size - optimized memoization
   const previewInfo = useMemo(() => {
     if (!selectedPhoto) return null;
     
@@ -179,7 +217,6 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
   return (
     <div className="flex flex-col h-full">
 
-      {/* Preview Image - Main content area */}
       <div className="flex-1 flex flex-col p-0 min-h-0">
         <div 
           className="flex-1 bg-gray-100 dark:bg-gray-800 overflow-hidden min-h-0 image-preview-container"
@@ -259,9 +296,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
         </div>
       </div>
 
-      {/* Bottom section - File info and download button */}
       <div className="flex-shrink-0 p-4 space-y-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        {/* File Info */}
         <div className="space-y-2 text-sm">
           <div className="font-medium text-gray-900 dark:text-white truncate" title={selectedPhoto.file.name}>
             {selectedPhoto.file.name}
@@ -285,13 +320,12 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
           )}
         </div>
 
-        {/* Download Button - optimized with useCallback */}
         <div className="flex space-x-2">
           <Button 
             variant="primary" 
             className="flex-1"
             disabled={!themedPreview}
-            onClick={handleDownloadClick}
+            onClick={handleOpenDownloadSettings}
           >
             {themedPreview
               ? t('preview.download-single', '이 사진 다운로드') 
@@ -315,7 +349,6 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
         </div>
       </div>
 
-      {/* Modal for full-size preview */}
       {showModal && themedPreview && (
         <div 
           className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
@@ -325,7 +358,6 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
             className="relative flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close button */}
             <button
               onClick={() => setShowModal(false)}
               className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-colors backdrop-blur-sm"
@@ -334,8 +366,6 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-
-            {/* Full-size image with size constraints */}
             <img
               src={themedPreview}
               alt={`Full preview - ${selectedPhoto.file.name}`}
@@ -350,6 +380,14 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
           </div>
         </div>
       )}
+      <DownloadSettingsModal
+        isOpen={showDownloadSettings}
+        onClose={() => setShowDownloadSettings(false)}
+        onConfirm={handleConfirmDownload}
+        confirmLabel={t('preview.download-single', '이 사진 다운로드')}
+        isConfirmDisabled={!selectedPhoto || !selectedThemeName}
+        isConfirmLoading={isDownloading}
+      />
     </div>
   );
 };

@@ -40,7 +40,6 @@ const Slider: React.FC<SliderProps> = ({
     
     newValue = Math.max(min, Math.min(max, newValue));
     
-    // Fix floating point precision issues
     if (step < 1) {
       const decimals = step.toString().split('.')[1]?.length || 0;
       newValue = parseFloat(newValue.toFixed(decimals));
@@ -91,27 +90,26 @@ const Slider: React.FC<SliderProps> = ({
     };
   }, [isDragging, min, max, step, onChange]);
 
+  const thumbInset = 10;
+
   return (
     <div 
       className={`relative h-6 flex items-center select-none touch-none ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${className}`}
-      ref={trackRef}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
-      {/* Track background */}
-      <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-        {/* Filled track */}
+      <div ref={trackRef} className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
         <div 
           className="h-full bg-primary transition-all duration-75 ease-out"
           style={{ width: `${percentage}%` }}
         />
       </div>
 
-      {/* Thumb */}
       <div 
         className={`absolute w-5 h-5 bg-white dark:bg-gray-100 border-2 border-primary rounded-full shadow hover:scale-110 transition-transform duration-75 ${isDragging ? 'scale-110' : ''}`}
         style={{ 
-          left: `calc(${percentage}% - 10px)` 
+          left: `clamp(${thumbInset}px, calc(${percentage}% ), calc(100% - ${thumbInset}px))`,
+          transform: 'translateX(-50%)'
         }}
       />
     </div>

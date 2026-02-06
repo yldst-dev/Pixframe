@@ -10,6 +10,8 @@ import IconButton from './ui/icon-button';
 import JSZip from 'jszip';
 import SettingsIcon from '../icons/settings.icon';
 import ImageIcon from '../icons/image.icon';
+import DownloadSettingsModal from './settings/download-settings-modal';
+import { getExportFormat } from '../utils/export-format';
 
 interface TopToolbarProps {
   isPhotoSidebarOpen: boolean;
@@ -30,6 +32,10 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
     const themeStore = useThemeStore();
     const [showDownloadModal, setShowDownloadModal] = React.useState(false);
     const [downloadProgress, setDownloadProgress] = React.useState({ current: 0, total: 0 });
+    const [isDownloadSettingsOpen, setIsDownloadSettingsOpen] = React.useState(false);
+    const [isConfirmingDownload, setIsConfirmingDownload] = React.useState(false);
+
+    const canDownloadAll = photos.length > 0 && Boolean(selectedThemeName);
 
     const handleDownloadAll = async () => {
         if (!selectedThemeName || photos.length === 0) return;
@@ -43,49 +49,40 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
                 throw new Error(`Theme "${selectedThemeName}" not found`);
             }
 
-            // Create a Map with all required options and their default values
             const themeOptions = new Map();
             
-            // First, set all default values from theme options
             selectedTheme.options.forEach(option => {
                 themeOptions.set(option.id, option.default);
             });
             
-            // Then override with user-configured values if they exist
             themeStore.option.forEach((value, key) => {
                 if (selectedTheme.options.some(opt => opt.id === key)) {
                     themeOptions.set(key, value);
                 }
             });
 
-            // Create a new ZIP file
             const zip = new JSZip();
             
-            // Process each photo and add to ZIP
             for (let i = 0; i < photos.length; i++) {
                 const photo = photos[i];
                 
                 try {
-                    // Update progress
                     setDownloadProgress({ current: i + 1, total: photos.length });
                     
-                    // Generate themed image
                     const canvas = await render(selectedTheme.func, photo, themeOptions, store);
                     
-                    // Convert canvas to blob
+                    const { mimeType, extension, useJpeg } = getExportFormat(photo.file.name, store.exportToJpeg);
+                    const quality = useJpeg ? store.quality || 0.95 : undefined;
                     const blob = await new Promise<Blob>((resolve) => {
                         canvas.toBlob((blob) => {
                             resolve(blob!);
-                        }, 'image/jpeg', store.quality || 0.95);
+                        }, mimeType, quality);
                     });
                     
-                    // Generate filename with theme name
-                    const fileExtension = photo.file.name.split('.').pop();
                     const baseFileName = photo.file.name.replace(/\.[^/.]+$/, "");
                     const themeName = selectedThemeName.replace(/\s+/g, '_').toLowerCase();
-                    const fileName = `${baseFileName}_${themeName}.${store.exportToJpeg ? 'jpg' : fileExtension}`;
+                    const fileName = `${baseFileName}_${themeName}.${extension}`;
                     
-                    // Add the image to ZIP file
                     zip.file(fileName, blob);
                     
                 } catch (error) {
@@ -93,10 +90,8 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
                 }
             }
             
-            // Generate ZIP file and download
             const zipBlob = await zip.generateAsync({ type: 'blob' });
             
-            // Create download link for ZIP file
             const themeName = selectedThemeName.replace(/\s+/g, '_').toLowerCase();
             const zipFileName = `exif_frames_${themeName}_${photos.length}photos.zip`;
             
@@ -107,7 +102,6 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
             link.click();
             document.body.removeChild(link);
             
-            // Clean up the object URL
             URL.revokeObjectURL(link.href);
             
         } catch (error) {
@@ -117,6 +111,19 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
             setShowDownloadModal(false);
             setDownloadProgress({ current: 0, total: 0 });
         }
+    };
+
+    const handleOpenDownloadSettings = () => {
+        if (!canDownloadAll) return;
+        setIsDownloadSettingsOpen(true);
+    };
+
+    const handleConfirmDownloadAll = async () => {
+        if (!canDownloadAll || isConfirmingDownload) return;
+        setIsConfirmingDownload(true);
+        setIsDownloadSettingsOpen(false);
+        await handleDownloadAll();
+        setIsConfirmingDownload(false);
     };
 
     return (
@@ -152,8 +159,8 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
                 <Button
                     variant="primary"
                     size="sm"
-                    onClick={handleDownloadAll}
-                    disabled={photos.length === 0}
+                    onClick={handleOpenDownloadSettings}
+                    disabled={!canDownloadAll}
                     className="uppercase text-xs font-bold tracking-wide"
                 >
                     <span className="mr-2"><DownloadIcon size={14} /></span>
@@ -172,7 +179,6 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
                 </IconButton>
             </div>
 
-            {/* Download Progress Modal */}
             {showDownloadModal && (
                 <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center">
                     <div className="bg-card border border-border p-8 max-w-sm w-full shadow-2xl">
@@ -189,6 +195,14 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
                     </div>
                 </div>
             )}
+            <DownloadSettingsModal
+                isOpen={isDownloadSettingsOpen}
+                onClose={() => setIsDownloadSettingsOpen(false)}
+                onConfirm={handleConfirmDownloadAll}
+                confirmLabel={t('toolbar.download_all', 'Download All')}
+                isConfirmDisabled={!canDownloadAll}
+                isConfirmLoading={isConfirmingDownload}
+            />
         </header>
     );
 };

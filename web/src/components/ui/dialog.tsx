@@ -9,6 +9,7 @@ interface DialogProps {
   title?: string;
   children: React.ReactNode;
   className?: string;
+  bodyClassName?: string;
 }
 
 const Dialog: React.FC<DialogProps> = ({
@@ -17,6 +18,7 @@ const Dialog: React.FC<DialogProps> = ({
   title,
   children,
   className = '',
+  bodyClassName = 'p-4',
 }) => {
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -53,7 +55,7 @@ const Dialog: React.FC<DialogProps> = ({
             <IoClose size={20} />
           </IconButton>
         </div>
-        <div className="p-4">
+        <div className={bodyClassName}>
           {children}
         </div>
       </div>
