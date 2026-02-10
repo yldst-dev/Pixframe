@@ -85,6 +85,12 @@ npm run dev -- --port 5174
 - `Export > Preserve Original EXIF Data`: 원본 메타데이터(위치/GPS 포함) 유지/제거 동작을 UI에서 명확히 안내
 - `Strap` 테마: 세로(포트레이트) 이미지에서 로고/텍스트 배치 안정화 + Maker 이름 축약으로 공간 확보
 
+## TODO
+
+- Android 앱 출시 (Google Play)
+- iOS 앱 출시 (App Store)
+- 로딩 성능 개선 (초기 번들 축소/코드 스플리팅, 이미지 처리 모듈 lazy load 등)
+
 ## 배포
 
 Vercel 등의 정적 호스팅 서비스에 쉽게 배포할 수 있습니다. `web` 디렉토리를 루트로 설정하고 빌드 명령어로 `npm run build`를 사용하세요.
