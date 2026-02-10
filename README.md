@@ -79,11 +79,11 @@ npm install
 npm run dev -- --port 5174
 ```
 
-## 최근 변경점 (v2.0.2)
+## 변경내역
 
-- `Theme Dark Mode`: 지원 테마에서 빠르게 흑/백 테마로 전환 (예: Strap/One line/Two line 등)
-- `Export > Preserve Original EXIF Data`: 원본 메타데이터(위치/GPS 포함) 유지/제거 동작을 UI에서 명확히 안내
-- `Strap` 테마: 세로(포트레이트) 이미지에서 로고/텍스트 배치 안정화 + Maker 이름 축약으로 공간 확보
+변경 내역은 GitHub Releases에서 관리합니다.
+
+- https://github.com/yldst-dev/Pixframe/releases
 
 ## TODO
 
