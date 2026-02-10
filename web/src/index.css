@@ -136,6 +136,40 @@
   transition: background-color 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out;
 }
 
+/* Pixframe loading indicator: two squares that swap/fill */
+.pf-square-loader {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.pf-square-loader::before,
+.pf-square-loader::after {
+  content: '';
+  width: 25px;
+  aspect-ratio: 1;
+  box-shadow: 0 0 0 3px inset currentColor;
+  animation: pf-square-loader 1.5s infinite;
+}
+
+.pf-square-loader::after {
+  --s: -1;
+}
+
+@keyframes pf-square-loader {
+  0% {
+    transform: scaleX(var(--s, 1)) translate(0) scale(1);
+  }
+  33% {
+    transform: scaleX(var(--s, 1)) translate(calc(50% + 2.5px)) scale(1);
+  }
+  66% {
+    transform: scaleX(var(--s, 1)) translate(calc(50% + 2.5px)) scale(2);
+  }
+  100% {
+    transform: scaleX(var(--s, 1)) translate(0) scale(1);
+  }
+}
+
 /* Image preview centering */
 .image-preview-container {
   display: flex;

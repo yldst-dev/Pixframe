@@ -8,47 +8,53 @@ import { t } from 'i18next';
 const SUPPORTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 
 const AddPhotoDragInDrop = () => {
-  const { photos, setPhotos, setLoading, setOpenedAddPhotoErrorDialog, darkMode } = useStore();
+  const { photos, setPhotos, setLoading, setLoadingProgress, setOpenedAddPhotoErrorDialog, darkMode } = useStore();
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const processFiles = useCallback(async (files: FileList) => {
     setError(null);
-    setLoading(true);
     
-    try {
-      const validFiles = Array.from(files).filter(file => 
-        SUPPORTED_TYPES.some(type => file.type.includes(type.split('/')[1] || ''))
-      );
+    const validFiles = Array.from(files).filter(file => 
+      SUPPORTED_TYPES.some(type => file.type.includes(type.split('/')[1] || ''))
+    );
 
-      if (validFiles.length === 0) {
-        throw new Error('No supported image files found. Please upload JPEG, PNG, or WebP files.');
+    if (validFiles.length === 0) {
+      setError('No supported image files found. Please upload JPEG, PNG, or WebP files.');
+      setOpenedAddPhotoErrorDialog(true);
+      return;
+    }
+
+    setLoading(true);
+    setLoadingProgress({ current: 0, total: validFiles.length, currentFileName: validFiles[0]?.name || '' });
+
+    try {
+      const successfulPhotos: Photo[] = [];
+
+      for (let i = 0; i < validFiles.length; i++) {
+        const file = validFiles[i];
+        // Use 1-based "current" so the fill is visible even for single-file imports.
+        setLoadingProgress({ current: i + 1, total: validFiles.length, currentFileName: file.name });
+
+        try {
+          const photo = await Photo.create(file);
+          successfulPhotos.push(photo);
+        } catch (e) {
+          console.error(`Error processing ${file.name}:`, e);
+        }
       }
 
-      const newPhotos = await Promise.all(
-        validFiles.map(file => Photo.create(file).catch(e => {
-          console.error(`Error processing ${file.name}:`, e);
-          return null;
-        }))
-      );
-
-      const successfulPhotos = newPhotos.filter((photo): photo is Photo => photo !== null);
-      
       if (successfulPhotos.length > 0) {
         setPhotos([...photos, ...successfulPhotos]);
       }
-      
+
       if (successfulPhotos.length < validFiles.length) {
         setError(`Could not process ${validFiles.length - successfulPhotos.length} file(s).`);
       }
-    } catch (e) {
-      console.error('Error processing files:', e);
-      setError(e instanceof Error ? e.message : 'An error occurred while processing the files.');
-      setOpenedAddPhotoErrorDialog(true);
     } finally {
       setLoading(false);
     }
-  }, [photos, setLoading, setOpenedAddPhotoErrorDialog, setPhotos]);
+  }, [photos, setLoading, setLoadingProgress, setOpenedAddPhotoErrorDialog, setPhotos]);
 
   const onDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();

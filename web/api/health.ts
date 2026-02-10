@@ -17,7 +17,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     status: 'ok',
     service: 'pixframe-web',
     uptime: Math.floor(uptimeMs / 1000),
-    version: process.env.npm_package_version || '2.0.1',
+    version: process.env.npm_package_version || '2.0.2',
     timestamp: new Date().toISOString()
   })
 }

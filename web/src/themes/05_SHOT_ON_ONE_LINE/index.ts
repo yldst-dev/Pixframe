@@ -51,9 +51,12 @@ const SHOT_ON_ONE_LINE_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput,
   context.fillText(`Shot on  `, FONT_SIZE, canvas.height - PADDING_BOTTOM / 2);
   const shotOnWidth = context.measureText('Shot on  ').width;
 
+  // For portrait images, hide maker name to avoid duplication (e.g., "RICOH RICOH GR III")
+  const isPortrait = photo.image.height > photo.image.width;
+
   context.font = `normal 500 ${FONT_SIZE}px Barlow`;
   context.fillText(
-    [photo.make, photo.model, photo.lensModel]
+    [isPortrait ? '' : photo.make, photo.model, photo.lensModel]
       .filter(Boolean)
       .map((value) => value!.trim())
       .join(' '),

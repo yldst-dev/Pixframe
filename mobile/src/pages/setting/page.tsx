@@ -1,6 +1,7 @@
 import { List, Navbar, Page, Tabbar, TabbarLink } from 'konsta/react';
 import { useTranslation } from 'react-i18next';
 import DarkModeListItem from './components/dark-mode.list-item';
+import ThemeDarkModeListItem from './components/theme-dark-mode.list-item';
 import LanguageListItem from './components/language.list-item';
 import LanguagePopover from './components/language.popover';
 import QualityListItem from './components/quality.list-item';
@@ -43,6 +44,7 @@ const ExportSettingsPage = () => {
 
       <List strongIos inset>
         <DarkModeListItem />
+        <ThemeDarkModeListItem />
         <LanguageListItem />
         <FixWatermarkListItem />
       </List>

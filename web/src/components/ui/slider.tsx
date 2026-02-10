@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 
 interface SliderProps {
   value: number;
@@ -24,7 +24,7 @@ const Slider: React.FC<SliderProps> = ({
 
   const percentage = ((value - min) / (max - min)) * 100;
 
-  const handleInteract = (clientX: number) => {
+  const handleInteract = useCallback((clientX: number) => {
     if (!trackRef.current || disabled) return;
 
     const rect = trackRef.current.getBoundingClientRect();
@@ -46,7 +46,7 @@ const Slider: React.FC<SliderProps> = ({
     }
 
     onChange(newValue);
-  };
+  }, [disabled, max, min, onChange, step]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -88,7 +88,7 @@ const Slider: React.FC<SliderProps> = ({
       window.removeEventListener('mouseup', handleMouseUp);
       window.removeEventListener('touchend', handleMouseUp);
     };
-  }, [isDragging, min, max, step, onChange]);
+  }, [handleInteract, isDragging]);
 
   const thumbInset = 10;
 

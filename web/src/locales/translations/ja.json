@@ -57,11 +57,14 @@
 
   "root.settings.current-version": "現在のバージョン",
   "root.settings.dark-mode": "ダークモード",
+  "root.settings.theme-dark-mode": "テーマダークモード",
   "root.settings.language": "言語",
   "root.settings.ratio": "比率",
   "root.settings.not-cropped-mode": "切り取られていないモード",
   "root.settings.export-to-jpeg": "JPEGにエクスポート",
   "root.settings.maintain-exif": "EXIFメタデータを保持（JPEGのみサポート）",
+  "root.settings.maintain-exif.footer.on": "位置情報（GPS）を含む元のメタデータが保持されます",
+  "root.settings.maintain-exif.footer.off": "位置情報（GPS）を含む元のメタデータが削除されます",
   "root.settings.quality": "画質",
   "root.settings.fix-image-width": "画像幅を固定",
   "root.settings.date-notation": "日付表記",
@@ -80,6 +83,9 @@
   "root.settings.override-lens-model": "レンズモデルを上書き",
   "root.settings.select-overridable-metadata": "上書き可能なメタデータを選択",
   "root.settings.create-metadata": "メタデータを作成",
+
+  "export.maintain-exif.description.on": "位置情報（GPS）を含む元のメタデータが保持されます",
+  "export.maintain-exif.description.off": "位置情報（GPS）を含む元のメタデータが削除されます",
 
   "privacy-policy": "プライバシーポリシー",
   "term-and-conditions": "利用規約",

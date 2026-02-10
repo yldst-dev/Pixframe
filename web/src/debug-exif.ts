@@ -50,4 +50,10 @@ export async function debugExifComparison() {
 }
 
 // 전역에서 사용할 수 있도록 window 객체에 추가
-(window as any).debugExif = debugExifComparison;
+declare global {
+  interface Window {
+    debugExif?: typeof debugExifComparison;
+  }
+}
+
+window.debugExif = debugExifComparison;

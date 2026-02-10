@@ -3,6 +3,7 @@ import { Store } from '../../store';
 import sandbox from '../../core/drawing/sandbox';
 import { ThemeFunc } from '../../core/drawing/theme';
 import { ThemeOption, ThemeOptionInput } from '../../pages/theme/types/theme-option';
+import { getShortMakerName } from '../../utils/short-maker-name';
 
 const SHOT_ON_TWO_LINE_OPTIONS: ThemeOption[] = [
   { id: 'BACKGROUND_COLOR', type: 'color', default: '#ffffff', description: '#ffffff is white, #000000 is black' },
@@ -39,9 +40,13 @@ const SHOT_ON_TWO_LINE_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput,
   context.font = `normal 100 50px Barlow`;
   context.fillText(TOP_LABEL, canvas.width / 2, PADDING_TOP - 75);
 
+  // Use short maker name for portrait images
+  const isPortrait = photo.image.height > photo.image.width;
+  const makerName = isPortrait ? getShortMakerName(photo.make) : photo.make;
+
   // shot on ${MAKER} ${MODEL}
   context.font = `normal 500 80px Barlow`;
-  context.fillText(`shot on ${[photo.make, photo.model].filter(Boolean).join(' ')}`, canvas.width / 2, canvas.height - PADDING_BOTTOM + 100);
+  context.fillText(`shot on ${[makerName, photo.model].filter(Boolean).join(' ')}`, canvas.width / 2, canvas.height - PADDING_BOTTOM + 100);
 
   if (!store.disableExposureMeter) {
     context.font = `normal 100 50px Barlow`;

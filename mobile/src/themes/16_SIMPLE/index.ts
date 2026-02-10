@@ -24,15 +24,20 @@ const SIMPLE_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: St
   const PADDING_LEFT = input.get('PADDING_LEFT') as number;
   const PADDING_RIGHT = input.get('PADDING_RIGHT') as number;
 
+  const THEME_DARK_MODE = Boolean(store.themeDarkMode);
+  const BACKGROUND_COLOR = THEME_DARK_MODE ? '#000000' : '#ffffff';
+  const PRIMARY_TEXT_COLOR = THEME_DARK_MODE ? '#ffffff' : '#000000';
+  const SECONDARY_TEXT_COLOR = THEME_DARK_MODE ? '#888888' : '#a0a0a0';
+
   const canvas = sandbox(photo, {
     targetRatio: store.ratio,
     notCroppedMode: store.notCroppedMode,
-    backgroundColor: '#ffffff',
+    backgroundColor: BACKGROUND_COLOR,
     padding: PADDING_INSIDE ? { top: 0, right: 0, bottom: 0, left: 0 } : { top: PADDING_TOP, right: PADDING_RIGHT, bottom: PADDING_BOTTOM, left: PADDING_LEFT },
   });
 
   const context = canvas.getContext('2d')!;
-  context.fillStyle = '#a0a0a0';
+  context.fillStyle = SECONDARY_TEXT_COLOR;
   context.textAlign = 'center';
   context.textBaseline = 'middle';
 
@@ -40,7 +45,7 @@ const SIMPLE_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: St
   context.fillText(LABEL, canvas.width / 2, canvas.height - 60);
 
   context.textAlign = 'left';
-  context.fillStyle = '#000000';
+  context.fillStyle = PRIMARY_TEXT_COLOR;
   context.font = `700 ${100}px ${FONT_FAMILY}`;
   const makerWidth = context.measureText(photo.make + ' ').width;
   context.font = `300 ${100}px ${FONT_FAMILY}`;
@@ -51,7 +56,7 @@ const SIMPLE_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: St
   context.fillText(photo.model, canvas.width / 2 - (makerWidth + modelWidth) / 2 + makerWidth, canvas.height - PADDING_BOTTOM / 2 - 100);
 
   context.textAlign = 'center';
-  context.fillStyle = '#a0a0a0';
+  context.fillStyle = SECONDARY_TEXT_COLOR;
 
   context.font = `300 ${30}px ${FONT_FAMILY}`;
   context.fillText(photo.takenAt, canvas.width / 2, canvas.height - PADDING_BOTTOM / 2 + 80);

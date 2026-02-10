@@ -51,8 +51,11 @@ export interface OverrideMetadata {
 export interface ThemeOptionBase {
   id: string;
   description?: string;
-  default: any;
+  default: unknown;
 }
+
+export type ThemeOptionValue = string | number | boolean;
+export type ThemeOptionsMap = Map<string, ThemeOptionValue>;
 
 /**
  * Color theme option
@@ -126,7 +129,7 @@ export type ThemeOption =
 export interface Theme {
   name: string;
   options: ThemeOption[];
-  func: (canvas: CanvasRenderingContext2D, photo: Photo, options: Map<string, any>, store: any) => void;
+  func: (canvas: CanvasRenderingContext2D, photo: Photo, options: ThemeOptionsMap, store: Store) => void;
 }
 
 /**
@@ -168,6 +171,7 @@ export interface StoreState {
   overrideCameraModel: string;
   overrideLensModel: string;
   selectedThemeName: string;
+  themeDarkMode: boolean;
   photos: Photo[];
   loading: boolean;
   overrideMetadataPopup: boolean;
@@ -214,6 +218,7 @@ export interface StoreActions {
   setOverrideCameraModel: (overrideCameraModel: string) => void;
   setOverrideLensModel: (overrideLensModel: string) => void;
   setSelectedThemeName: (name: string) => void;
+  setThemeDarkMode: (themeDarkMode: boolean) => void;
   setPhotos: (photos: Photo[]) => void;
   addPhoto: (photo: Photo) => void;
   removePhoto: (index: number) => void;

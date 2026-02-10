@@ -17,11 +17,34 @@ import DownloadIcon from '../icons/download.icon';
 import TrashIcon from '../icons/trash.icon';
 import render from '../core/drawing/render';
 import JSZip from 'jszip';
+import { CgMoon, CgSun } from 'react-icons/cg';
+
+const THEME_DARK_MODE_SUPPORTED_THEMES = new Set<string>([
+  'Just frame',
+  'Simple',
+  'Strap',
+  'One line',
+  'Two line',
+  'Shot on one line',
+  'Shot on two line',
+  'Monitor',
+]);
 
 const MobileLayout = () => {
   const { t } = useTranslation();
   const store = useStore();
-  const { photos, setPhotos, setLoading, setOpenedAddPhotoErrorDialog, selectedThemeName, setSelectedThemeName } = store;
+  const {
+    photos,
+    setPhotos,
+    setLoading,
+    setLoadingProgress,
+    setOpenedAddPhotoErrorDialog,
+    selectedThemeName,
+    setSelectedThemeName,
+    themeDarkMode,
+    setThemeDarkMode,
+    setRerenderOptions,
+  } = store;
   const { replaceOptions, option: themeOptionsStore } = useThemeStore();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
@@ -30,21 +53,40 @@ const MobileLayout = () => {
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
 
+  const themeDarkModeSupported = THEME_DARK_MODE_SUPPORTED_THEMES.has(selectedThemeName);
+
   const handleAddPhotos = useCallback(async (files: File[]) => {
+    if (files.length === 0) return;
     setLoading(true);
+    setLoadingProgress({ current: 0, total: files.length, currentFileName: files[0]?.name || '' });
+
     try {
-      const newPhotos = await Promise.all(files.map(Photo.create));
-      setPhotos([...photos, ...newPhotos]);
-      // Select the first newly added photo
-      if (newPhotos.length > 0) {
-        setSelectedImageIndex(photos.length);
+      const newPhotos: Photo[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        // Use 1-based "current" so the fill is visible even for single-file imports.
+        setLoadingProgress({ current: i + 1, total: files.length, currentFileName: file.name });
+        try {
+          const photo = await Photo.create(file);
+          newPhotos.push(photo);
+        } catch (e) {
+          console.error(e);
+        }
       }
-    } catch (e) {
-      console.error(e);
-      setOpenedAddPhotoErrorDialog(true);
+
+      if (newPhotos.length === 0) {
+        setOpenedAddPhotoErrorDialog(true);
+      } else {
+        setPhotos([...photos, ...newPhotos]);
+        // Select the first newly added photo
+        if (newPhotos.length > 0) {
+          setSelectedImageIndex(photos.length);
+        }
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [photos, setPhotos, setLoading, setOpenedAddPhotoErrorDialog]);
+  }, [photos, setPhotos, setLoading, setLoadingProgress, setOpenedAddPhotoErrorDialog]);
 
   const handleThemeSelect = useCallback((themeName: string) => {
     setSelectedThemeName(themeName);
@@ -164,7 +206,6 @@ const MobileLayout = () => {
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDeleteOne = useCallback((index?: number) => {
     const targetIndex = index ?? selectedImageIndex;
     if (targetIndex === null) return;
@@ -184,13 +225,14 @@ const MobileLayout = () => {
 
   // Listen for delete event from ImagePreview
   useEffect(() => {
-    const handleDeleteEvent = (e: CustomEvent<{ index: number }>) => {
+    const handleDeleteEvent = (event: Event) => {
+      const e = event as CustomEvent<{ index: number }>;
       handleDeleteOne(e.detail.index);
     };
-    
-    window.addEventListener('delete-current-photo' as any, handleDeleteEvent as any);
+
+    window.addEventListener('delete-current-photo', handleDeleteEvent);
     return () => {
-      window.removeEventListener('delete-current-photo' as any, handleDeleteEvent as any);
+      window.removeEventListener('delete-current-photo', handleDeleteEvent);
     };
   }, [handleDeleteOne]);
 
@@ -266,24 +308,43 @@ const MobileLayout = () => {
                 )}
              </div>
 
-             {/* Theme Selector (Bottom Scroll) */}
-             <div className="h-12 bg-background border-t border-border shrink-0 overflow-x-auto flex items-center px-2 space-x-2 no-scrollbar">
-               {themes.map((theme) => (
-                 <button
-                   key={theme.name}
-                   onClick={() => handleThemeSelect(theme.name)}
-                   className={`
-                     px-3 py-1 text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors border
-                     ${selectedThemeName === theme.name 
-                       ? 'bg-primary text-primary-foreground border-primary' 
-                       : 'bg-background text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground'
-                     }
-                   `}
-                 >
-                   {theme.name}
-                 </button>
-               ))}
-             </div>
+              {/* Theme Selector (Bottom Scroll) */}
+              <div className="h-12 bg-background border-t border-border shrink-0 flex items-center px-2">
+                <div className="flex-1 overflow-x-auto flex items-center space-x-2 no-scrollbar">
+                  {themes.map((theme) => (
+                    <button
+                      key={theme.name}
+                      onClick={() => handleThemeSelect(theme.name)}
+                      className={`
+                        px-3 py-1 text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-colors border
+                        ${selectedThemeName === theme.name 
+                          ? 'bg-primary text-primary-foreground border-primary' 
+                          : 'bg-background text-muted-foreground border-transparent hover:bg-secondary hover:text-foreground'
+                        }
+                      `}
+                    >
+                      {theme.name}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="shrink-0 ml-2">
+                  <IconButton
+                    variant={themeDarkMode ? 'primary' : 'outline'}
+                    size="sm"
+                    tooltip={t('root.settings.theme-dark-mode', 'Theme Dark Mode')}
+                    aria-label={t('root.settings.theme-dark-mode', 'Theme Dark Mode')}
+                    disabled={!themeDarkModeSupported}
+                    onClick={() => {
+                      if (!themeDarkModeSupported) return;
+                      setThemeDarkMode(!themeDarkMode);
+                      setRerenderOptions();
+                    }}
+                  >
+                    {themeDarkMode ? <CgMoon size={18} /> : <CgSun size={18} />}
+                  </IconButton>
+                </div>
+              </div>
 
              {/* Horizontal Photo List (Bottom Sheet style) */}
              <div className="bg-background border-t border-border shrink-0 overflow-x-auto flex items-center px-4 space-x-3 py-3 min-h-[6rem] max-h-[30vh]">

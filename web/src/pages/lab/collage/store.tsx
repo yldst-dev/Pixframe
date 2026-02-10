@@ -1,12 +1,28 @@
 import { create } from 'zustand';
 import Photo from '../../../core/photo';
 
+export interface LoadingProgress {
+  current: number;
+  total: number;
+  currentFileName: string;
+}
+
+const DEFAULT_LOADING_PROGRESS: LoadingProgress = {
+  current: 0,
+  total: 0,
+  currentFileName: '',
+};
+
 type Store = {
   photos: Photo[];
   setPhotos: (photos: Photo[]) => void;
 
   loading: boolean;
   setLoading: (loading: boolean) => void;
+  
+  loadingProgress: LoadingProgress;
+  setLoadingProgress: (progress: LoadingProgress) => void;
+  resetLoadingProgress: () => void;
 
   backgroundColor: string;
   setBackgroundColor: (backgroundColor: string) => void;
@@ -42,6 +58,10 @@ export const useStore = create<Store>((set) => ({
 
   loading: false,
   setLoading: (loading) => set({ loading }),
+
+  loadingProgress: DEFAULT_LOADING_PROGRESS,
+  setLoadingProgress: (progress) => set({ loadingProgress: progress }),
+  resetLoadingProgress: () => set({ loadingProgress: DEFAULT_LOADING_PROGRESS }),
 
   backgroundColor: localStorage.getItem('lab:backgroundColor') || '#ffffff',
   setBackgroundColor: (backgroundColor) => {

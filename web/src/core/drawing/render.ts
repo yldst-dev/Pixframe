@@ -4,8 +4,51 @@ import { Store } from '../../store';
 import { ThemeFunc } from './theme';
 import { ThemeOptionInput } from '../../pages/theme/types/theme-option';
 
+const THEME_DARK_MODE_SUPPORTED_THEMES = new Set<string>([
+  'Just frame',
+  'Simple',
+  'Strap',
+  'One line',
+  'Two line',
+  'Shot on one line',
+  'Shot on two line',
+  'Monitor',
+]);
+
+const applyThemeDarkMode = (option: ThemeOptionInput, store: Store): ThemeOptionInput => {
+  const themeName = store.selectedThemeName;
+  if (!themeName || !THEME_DARK_MODE_SUPPORTED_THEMES.has(themeName)) return option;
+
+  const isDark = Boolean(store.themeDarkMode);
+  const next = new Map(option) as ThemeOptionInput;
+
+  // Strap uses a boolean option to control background/text/logo variants.
+  // Always sync it to the global toggle so local Strap dark mode doesn't conflict.
+  if (themeName === 'Strap') {
+    next.set('DARK_MODE', isDark);
+    return next;
+  }
+
+  // Monitor is dark by default; treat the global toggle as a true light/dark switch.
+  if (themeName === 'Monitor') {
+    next.set('BACKGROUND_COLOR', isDark ? '#000000' : '#ffffff');
+    next.set('TEXT_COLOR', isDark ? '#ffffff' : '#000000');
+    return next;
+  }
+
+  // For other supported themes, only force black/white when dark mode is enabled.
+  // When disabled, keep theme defaults/customizations intact.
+  if (isDark) {
+    next.set('BACKGROUND_COLOR', '#000000');
+    next.set('TEXT_COLOR', '#ffffff');
+  }
+
+  return next;
+};
+
 const render = async (func: ThemeFunc, photo: Photo, option: ThemeOptionInput, store: Store): Promise<HTMLCanvasElement> => {
-  let canvas = func(photo, option, store);
+  const optionWithThemeDarkMode = applyThemeDarkMode(option, store);
+  let canvas = func(photo, optionWithThemeDarkMode, store);
 
   if (store.fixWatermark && store.watermark) {
     const context = canvas.getContext('2d')!;

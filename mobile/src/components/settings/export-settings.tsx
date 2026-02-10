@@ -177,11 +177,18 @@ const ExportSettings = () => {
         </h3>
 
         <div className="space-y-4">
-          <Toggle
-            checked={maintainExif}
-            onChange={setMaintainExif}
-            label={t('export.maintain-exif', 'Preserve Original EXIF Data')}
-          />
+          <div className="space-y-1">
+            <Toggle
+              checked={maintainExif}
+              onChange={setMaintainExif}
+              label={t('export.maintain-exif', 'Preserve Original EXIF Data')}
+            />
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {maintainExif
+                ? t('export.maintain-exif.description.on', 'Original metadata including location (GPS) will be preserved.')
+                : t('export.maintain-exif.description.off', 'Original metadata including location (GPS) will be removed.')}
+            </div>
+          </div>
         </div>
       </div>
 

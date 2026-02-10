@@ -1,4 +1,4 @@
-# Pixframe (v2.0.1)
+# Pixframe (v2.0.2)
 
 <div align="center">
   <img src="preview image.jpg" width="50%" alt="preview" />
@@ -41,25 +41,51 @@ Pixframe은 사진의 EXIF 메타데이터를 활용하여 아름다운 프레�
 *   **Image Processing**: Canvas API, EXIFReader
 *   **Deployment**: Vercel
 
+## 프로젝트 구조
+
+- `web/`: 데스크톱/웹(PWA)용 React + Vite 앱
+- `mobile/`: 모바일 UI(터치 최적화)용 React + Vite 앱
+
 ## 시작하기
 
 ### 설치 및 실행
 
-1.  저장소 클론
-    ```bash
-    git clone https://github.com/yldst-dev/Pixframe
-    ```
-2.  의존성 설치
-    ```bash
-    cd pixframe/web
-    npm install
-    ```
-3.  개발 서버 실행
-    ```bash
-    npm run dev
-    ```
+ 1.  저장소 클론
+     ```bash
+     git clone https://github.com/yldst-dev/Pixframe
+     ```
+ 2.  의존성 설치
+     ```bash
+     cd Pixframe
+     npm install
+     ```
+ 3.  개발 서버 실행
+     ```bash
+     # web + mobile 동시 실행
+     npm run dev
+     ```
 
-### 배포
+### 개별 실행
+
+```bash
+# web
+cd web
+npm install
+npm run dev
+
+# mobile
+cd ../mobile
+npm install
+npm run dev -- --port 5174
+```
+
+## 최근 변경점 (v2.0.2)
+
+- `Theme Dark Mode`: 지원 테마에서 빠르게 흑/백 테마로 전환 (예: Strap/One line/Two line 등)
+- `Export > Preserve Original EXIF Data`: 원본 메타데이터(위치/GPS 포함) 유지/제거 동작을 UI에서 명확히 안내
+- `Strap` 테마: 세로(포트레이트) 이미지에서 로고/텍스트 배치 안정화 + Maker 이름 축약으로 공간 확보
+
+## 배포
 
 Vercel 등의 정적 호스팅 서비스에 쉽게 배포할 수 있습니다. `web` 디렉토리를 루트로 설정하고 빌드 명령어로 `npm run build`를 사용하세요.
 

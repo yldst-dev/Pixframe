@@ -3,6 +3,21 @@ import { PanelPosition } from '../types';
 import { SafeStorage } from '../utils/safe-storage';
 
 /**
+ * Loading progress interface for image processing
+ */
+export interface LoadingProgress {
+  current: number;
+  total: number;
+  currentFileName: string;
+}
+
+const DEFAULT_LOADING_PROGRESS: LoadingProgress = {
+  current: 0,
+  total: 0,
+  currentFileName: '',
+};
+
+/**
  * UI-related state management
  * Handles tabs, panels, popups, and language settings
  */
@@ -17,6 +32,7 @@ export interface UIState {
   ratioPopover: boolean;
   overrideMetadataPopup: boolean;
   loading: boolean;
+  loadingProgress: LoadingProgress;
   darkMode: boolean;
 }
 
@@ -31,6 +47,8 @@ export interface UIActions {
   setRatioPopover: (opened: boolean) => void;
   setOverrideMetadataPopup: (opened: boolean) => void;
   setLoading: (loading: boolean) => void;
+  setLoadingProgress: (progress: LoadingProgress) => void;
+  resetLoadingProgress: () => void;
   setDarkMode: (darkMode: boolean) => void;
 }
 
@@ -48,6 +66,7 @@ export const useUIStore = create<UIStore>((set) => ({
   ratioPopover: false,
   overrideMetadataPopup: false,
   loading: false,
+  loadingProgress: DEFAULT_LOADING_PROGRESS,
   darkMode: SafeStorage.getBooleanItem('darkMode', false),
 
   // Actions
@@ -61,6 +80,8 @@ export const useUIStore = create<UIStore>((set) => ({
   setRatioPopover: (opened: boolean) => set({ ratioPopover: opened }),
   setOverrideMetadataPopup: (opened: boolean) => set({ overrideMetadataPopup: opened }),
   setLoading: (loading: boolean) => set({ loading }),
+  setLoadingProgress: (progress: LoadingProgress) => set({ loadingProgress: progress }),
+  resetLoadingProgress: () => set({ loadingProgress: DEFAULT_LOADING_PROGRESS }),
   setDarkMode: (darkMode: boolean) =>
     set(() => {
       try {

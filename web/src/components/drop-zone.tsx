@@ -8,7 +8,7 @@ import Photo from '../core/photo';
 
 const DropZone = () => {
   const { t } = useTranslation();
-  const { photos, setPhotos, setLoading, setOpenedAddPhotoErrorDialog } = useStore();
+  const { photos, setPhotos, setLoading, setLoadingProgress, setOpenedAddPhotoErrorDialog } = useStore();
   const [isDragOver, setIsDragOver] = useState(false);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -22,16 +22,33 @@ const DropZone = () => {
   }, []);
 
   const handleAddPhotos = useCallback(async (files: File[]) => {
+    if (files.length === 0) return;
     setLoading(true);
+    setLoadingProgress({ current: 0, total: files.length, currentFileName: files[0]?.name || '' });
+
     try {
-      const newPhotos = await Promise.all(files.map(Photo.create));
-      setPhotos([...photos, ...newPhotos]);
-    } catch (e) {
-      console.error(e);
-      setOpenedAddPhotoErrorDialog(true);
+      const newPhotos: Photo[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        // Use 1-based "current" so the fill is visible even for single-file imports.
+        setLoadingProgress({ current: i + 1, total: files.length, currentFileName: file.name });
+        try {
+          const photo = await Photo.create(file);
+          newPhotos.push(photo);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      if (newPhotos.length === 0) {
+        setOpenedAddPhotoErrorDialog(true);
+      } else {
+        setPhotos([...photos, ...newPhotos]);
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [photos, setPhotos, setLoading, setOpenedAddPhotoErrorDialog]);
+  }, [photos, setPhotos, setLoading, setLoadingProgress, setOpenedAddPhotoErrorDialog]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();

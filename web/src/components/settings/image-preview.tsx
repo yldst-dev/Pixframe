@@ -97,15 +97,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
     selectedPhoto,
     selectedThemeName,
     debouncedThemeOptions,
-    store.rerenderOptions,
-    store.quality,
-    store.exportToJpeg,
-    store.enableFixImageWidth,
-    store.fixImageWidth,
-    store.showCameraMaker,
-    store.showCameraModel,
-    store.showLensModel,
-    themedPreview
+    themedPreview,
+    store
   ]);
 
   useEffect(() => {

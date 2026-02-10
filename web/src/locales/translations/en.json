@@ -57,11 +57,14 @@
 
   "root.settings.current-version": "Current Version",
   "root.settings.dark-mode": "Dark Mode",
+  "root.settings.theme-dark-mode": "Theme Dark Mode",
   "root.settings.language": "Language",
   "root.settings.ratio": "Ratio with crop",
   "root.settings.not-cropped-mode": "Not Cropped Mode",
   "root.settings.export-to-jpeg": "Export to JPEG",
   "root.settings.maintain-exif": "Keep EXIF Metadata (Only supported in JPEG)",
+  "root.settings.maintain-exif.footer.on": "Original metadata including location (GPS) will be preserved.",
+  "root.settings.maintain-exif.footer.off": "Original metadata including location (GPS) will be removed.",
   "root.settings.quality": "Quality",
   "root.settings.fix-image-width": "Fix Image Width",
   "root.settings.date-notation": "Date Notation",
@@ -80,6 +83,9 @@
   "root.settings.override-lens-model": "Override Lens Model",
   "root.settings.select-overridable-metadata": "Select Overridable Metadata",
   "root.settings.create-metadata": "Create Metadata",
+
+  "export.maintain-exif.description.on": "Original metadata including location (GPS) will be preserved.",
+  "export.maintain-exif.description.off": "Original metadata including location (GPS) will be removed.",
 
   "privacy-policy": "Privacy Policy",
   "term-and-conditions": "Term and Conditions",

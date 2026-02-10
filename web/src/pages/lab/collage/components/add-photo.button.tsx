@@ -8,8 +8,38 @@ import * as Root from '../../../../store';
 
 const AddPhotoButton = () => {
   const { t } = useTranslation();
-  const { photos, setPhotos, setLoading } = useStore();
+  const { photos, setPhotos, setLoading, setLoadingProgress } = useStore();
   const { setOpenedAddPhotoErrorDialog } = Root.useStore();
+
+  const processFiles = async (files: FileList) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+    setLoading(true);
+    setLoadingProgress({ current: 0, total: fileArray.length, currentFileName: fileArray[0]?.name || '' });
+
+    try {
+      const newPhotos: Photo[] = [];
+      for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i];
+        // Use 1-based "current" so the fill is visible even for single-file imports.
+        setLoadingProgress({ current: i + 1, total: fileArray.length, currentFileName: file.name });
+        try {
+          const photo = await Photo.create(file);
+          newPhotos.push(photo);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      if (newPhotos.length === 0) {
+        setOpenedAddPhotoErrorDialog(true);
+      } else {
+        setPhotos([...photos, ...newPhotos]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const onDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -27,36 +57,18 @@ const AddPhotoButton = () => {
   };
 
   const onDrop = async (e: React.DragEvent<HTMLDivElement>) => {
-    setLoading(true);
     e.preventDefault();
     e.stopPropagation();
     const { files } = e.dataTransfer;
-    if (!files) return;
-    try {
-      await Promise.all(Array.from(files).map(Photo.create)).then((newPhotos) => {
-        setPhotos([...photos, ...newPhotos]);
-      });
-    } catch (e) {
-      console.error(e);
-      setOpenedAddPhotoErrorDialog(true);
-    }
-    setLoading(false);
+    if (!files || files.length === 0) return;
+    await processFiles(files);
   };
 
   const onChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    setLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 100));
     const { files } = event.target;
-    if (!files) return;
-    try {
-      await Promise.all(Array.from(files).map(Photo.create)).then((newPhotos) => {
-        setPhotos([...photos, ...newPhotos]);
-      });
-    } catch (e) {
-      console.error(e);
-      setOpenedAddPhotoErrorDialog(true);
-    }
-    setLoading(false);
+    if (!files || files.length === 0) return;
+    await processFiles(files);
   };
 
   return (

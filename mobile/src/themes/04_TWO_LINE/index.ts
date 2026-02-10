@@ -4,6 +4,7 @@ import sandbox from '../../core/drawing/sandbox';
 import { ThemeFunc } from '../../core/drawing/theme';
 import { ThemeOption, ThemeOptionInput } from '../../pages/theme/types/theme-option';
 import Font from '../../fonts';
+import { getShortMakerName } from '../../utils/short-maker-name';
 
 const TWO_LINE_OPTIONS: ThemeOption[] = [
   { id: 'BACKGROUND_COLOR', type: 'color', default: '#ffffff', description: '#ffffff is white, #000000 is black' },
@@ -59,11 +60,15 @@ const TWO_LINE_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: 
   context.globalAlpha = TEXT_ALPHA;
   context.fillText(TOP_LABEL, canvas.width / 2, PADDING_TOP / 2);
 
+  // Use short maker name for portrait images
+  const isPortrait = photo.image.height > photo.image.width;
+  const makerName = isPortrait ? getShortMakerName(photo.make) : photo.make;
+
   const text1 = TEMPLATE1.split('}')
     .map((part) => `${part}}`)
     .map((part) =>
       part
-        .replace(/{MAKER}/g, photo.make)
+        .replace(/{MAKER}/g, makerName)
         .replace(/{BODY}/g, photo.model || '')
         .replace(/{LENS}/g, photo.lensModel || '')
         .replace(/{ISO}/g, store.disableExposureMeter ? '' : photo.iso || '')
@@ -84,7 +89,7 @@ const TWO_LINE_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: 
       .map((part) => `${part}}`)
       .map((part) =>
         part
-          .replace(/{MAKER}/g, photo.make)
+          .replace(/{MAKER}/g, makerName)
           .replace(/{BODY}/g, photo.model || '')
           .replace(/{LENS}/g, photo.lensModel || '')
           .replace(/{ISO}/g, store.disableExposureMeter ? '' : photo.iso || '')

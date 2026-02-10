@@ -43,6 +43,7 @@ export interface SettingsState {
 
   // Theme
   selectedThemeName: string;
+  themeDarkMode: boolean;
   
   // Render trigger
   rerenderOptions: number;
@@ -73,6 +74,7 @@ export interface SettingsActions {
   setFixWatermark: (fixWatermark: boolean) => void;
   setWatermark: (watermark: string) => void;
   setSelectedThemeName: (name: string) => void;
+  setThemeDarkMode: (themeDarkMode: boolean) => void;
   setRerenderOptions: () => void;
 }
 
@@ -107,6 +109,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     const savedTheme = SafeStorage.getItem('selectedThemeName', '');
     return themes.find(theme => theme.name === savedTheme)?.name || 'No frame';
   })(),
+  themeDarkMode: SafeStorage.getBooleanItem('themeDarkMode', false),
   rerenderOptions: 0,
 
   // Actions with safe localStorage persistence
@@ -253,6 +256,12 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     set(() => {
       SafeStorage.setItem('selectedThemeName', selectedThemeName);
       return { selectedThemeName };
+    }),
+
+  setThemeDarkMode: (themeDarkMode: boolean) =>
+    set(() => {
+      SafeStorage.setBooleanItem('themeDarkMode', themeDarkMode);
+      return { themeDarkMode };
     }),
 
   setRerenderOptions: () => set({ rerenderOptions: Math.random() }),

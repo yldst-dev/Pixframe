@@ -13,18 +13,36 @@ interface PhotoSidebarProps {
 
 const PhotoSidebar: React.FC<PhotoSidebarProps> = ({ selectedIndex, onSelectPhoto }) => {
   const { t } = useTranslation();
-  const { photos, setPhotos, setLoading, setOpenedAddPhotoErrorDialog, clearAllPhotos } = useStore();
+  const { photos, setPhotos, setLoading, setLoadingProgress, setOpenedAddPhotoErrorDialog, clearAllPhotos } = useStore();
 
   const handleAddPhotos = async (files: FileList) => {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
     setLoading(true);
+    setLoadingProgress({ current: 0, total: fileArray.length, currentFileName: fileArray[0]?.name || '' });
+
     try {
-      const newPhotos = await Promise.all(Array.from(files).map(Photo.create));
-      setPhotos([...photos, ...newPhotos]);
-    } catch (e) {
-      console.error(e);
-      setOpenedAddPhotoErrorDialog(true);
+      const newPhotos: Photo[] = [];
+      for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i];
+        // Use 1-based "current" so the fill is visible even for single-file imports.
+        setLoadingProgress({ current: i + 1, total: fileArray.length, currentFileName: file.name });
+        try {
+          const photo = await Photo.create(file);
+          newPhotos.push(photo);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      if (newPhotos.length === 0) {
+        setOpenedAddPhotoErrorDialog(true);
+      } else {
+        setPhotos([...photos, ...newPhotos]);
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleDeletePhoto = (e: React.MouseEvent, indexToDelete: number) => {

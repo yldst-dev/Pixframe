@@ -99,7 +99,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
         setIsGenerating(false);
       }
     }
-  }, [selectedPhoto, selectedThemeName, debouncedThemeOptions, store.rerenderOptions, store.quality, themedPreview]);
+  }, [selectedPhoto, selectedThemeName, debouncedThemeOptions, themedPreview, store]);
 
   useEffect(() => {
     generateExportPreview();

@@ -4,6 +4,7 @@ import sandbox from '../../core/drawing/sandbox';
 import { ThemeFunc } from '../../core/drawing/theme';
 import { ThemeOption, ThemeOptionInput } from '../../pages/theme/types/theme-option';
 import Font from '../../fonts';
+import { getShortMakerName } from '../../utils/short-maker-name';
 
 const LIGHTROOM_OPTIONS: ThemeOption[] = [
   { id: 'BACKGROUND_COLOR', type: 'color', default: '#1f1f1f', description: '#ffffff is white, #000000 is black' },
@@ -43,16 +44,25 @@ const LIGHTROOM_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store:
   context.font = `${FONT_STYLE} ${FONT_WEIGHT} ${FONT_SIZE}px ${FONT_FAMILY}`;
   context.textAlign = 'left';
 
+  // Check if portrait image
+  const isPortrait = photo.image.height > photo.image.width;
+
+  // For portrait: use shorter text and smaller spacing
+  const textSpacing = isPortrait ? '  ' : '    ';
+
   if (!store.disableExposureMeter) {
-    context.fillText([`${photo.iso}`, `${photo.exposureTime}`, photo.fNumber, `${photo.focalLength}`].join('    '), PADDING_LEFT, canvas.height - PADDING_BOTTOM / 2);
+    context.fillText([`${photo.iso}`, `${photo.exposureTime}`, photo.fNumber, `${photo.focalLength}`].join(textSpacing), PADDING_LEFT, canvas.height - PADDING_BOTTOM / 2);
   }
+
+  // Use short maker name for portrait images
+  const makerName = isPortrait ? getShortMakerName(photo.make) : photo.make;
 
   context.textAlign = 'center';
   context.fillText(
-    [photo.make, photo.model, photo.lensModel]
+    [makerName, photo.model, photo.lensModel]
       .filter(Boolean)
       .map((value) => value!.trim())
-      .join('    '),
+      .join(textSpacing),
     canvas.width / 2,
     canvas.height - PADDING_BOTTOM / 2
   );

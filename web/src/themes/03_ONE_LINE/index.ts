@@ -4,6 +4,7 @@ import sandbox from '../../core/drawing/sandbox';
 import { ThemeFunc } from '../../core/drawing/theme';
 import { ThemeOption, ThemeOptionInput } from '../../pages/theme/types/theme-option';
 import Font from '../../fonts';
+import { getShortMakerName } from '../../utils/short-maker-name';
 
 const ONE_LINE_OPTIONS: ThemeOption[] = [
   { id: 'BACKGROUND_COLOR', type: 'color', default: '#ffffff', description: '#ffffff is white, #000000 is black' },
@@ -59,11 +60,15 @@ const ONE_LINE_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: 
 
   context.textAlign = TEXT_ALIGN as CanvasTextAlign;
 
+  // Use short maker name for portrait images
+  const isPortrait = photo.image.height > photo.image.width;
+  const makerName = isPortrait ? getShortMakerName(photo.make) : photo.make;
+
   const text = TEMPLATE.split('}')
     .map((part) => `${part}}`)
     .map((part) =>
       part
-        .replace(/{MAKER}/g, photo.make)
+        .replace(/{MAKER}/g, makerName)
         .replace(/{BODY}/g, photo.model || '')
         .replace(/{LENS}/g, photo.lensModel || '')
         .replace(/{ISO}/g, store.disableExposureMeter ? '' : photo.iso || '')
@@ -75,6 +80,18 @@ const ONE_LINE_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: 
     )
     .filter(Boolean)
     .join(' ' + DIVIDER + ' ');
+
+  // Auto-scale font size to fit within canvas width
+  const maxTextWidth = canvas.width - PADDING_LEFT - PADDING_RIGHT;
+  let adjustedFontSize = FONT_SIZE;
+  context.font = `${FONT_STYLE} ${FONT_WEIGHT} ${adjustedFontSize}px ${FONT_FAMILY}`;
+  let textWidth = context.measureText(text).width;
+  
+  while (textWidth > maxTextWidth && adjustedFontSize > 20) {
+    adjustedFontSize -= 2;
+    context.font = `${FONT_STYLE} ${FONT_WEIGHT} ${adjustedFontSize}px ${FONT_FAMILY}`;
+    textWidth = context.measureText(text).width;
+  }
 
   context.fillText(text, TEXT_ALIGN === 'left' ? PADDING_LEFT : TEXT_ALIGN === 'center' ? canvas.width / 2 : canvas.width - PADDING_RIGHT, canvas.height - PADDING_BOTTOM / 2);
   context.globalAlpha = 1;

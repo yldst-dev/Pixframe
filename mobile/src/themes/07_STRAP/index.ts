@@ -4,6 +4,7 @@ import sandbox from '../../core/drawing/sandbox';
 import { ThemeFunc } from '../../core/drawing/theme';
 import { ThemeOption, ThemeOptionInput } from '../../pages/theme/types/theme-option';
 import overrideExifMetadata from '../../core/exif-metadata/override-exif-metadata';
+import { getShortMakerName } from '../../utils/short-maker-name';
 
 const supportLogo = new Map<string, HTMLImageElement>();
 
@@ -87,11 +88,15 @@ const STRAP_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: Sto
   const PRIMARY_TEXT_COLOR = DARK_MODE ? '#ffffff' : '#000000';
   const SECONDARY_TEXT_COLOR = DARK_MODE ? '#888888' : '#333333';
 
+  // Use short maker name for portrait images
+  const isPortrait = photo.image.height > photo.image.width;
+  const makerName = isPortrait ? getShortMakerName(photo.make) : photo.make;
+
   const text1 = TEMPLATE1.split('}')
     .map((part) => `${part}}`)
     .map((part) =>
       part
-        .replace(/{MAKER}/g, photo.make)
+        .replace(/{MAKER}/g, makerName)
         .replace(/{BODY}/g, photo.model || '')
         .replace(/{LENS}/g, photo.lensModel || '')
         .replace(/{ISO}/g, store.disableExposureMeter ? '' : photo.iso || '')
@@ -108,7 +113,7 @@ const STRAP_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: Sto
     .map((part) => `${part}}`)
     .map((part) =>
       part
-        .replace(/{MAKER}/g, photo.make)
+        .replace(/{MAKER}/g, makerName)
         .replace(/{BODY}/g, photo.model || '')
         .replace(/{LENS}/g, photo.lensModel || '')
         .replace(/{ISO}/g, store.disableExposureMeter ? '' : photo.iso || '')
@@ -125,7 +130,7 @@ const STRAP_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: Sto
     .map((part) => `${part}}`)
     .map((part) =>
       part
-        .replace(/{MAKER}/g, photo.make)
+        .replace(/{MAKER}/g, makerName)
         .replace(/{BODY}/g, photo.model || '')
         .replace(/{LENS}/g, photo.lensModel || '')
         .replace(/{ISO}/g, store.disableExposureMeter ? '' : photo.iso || '')
@@ -142,7 +147,7 @@ const STRAP_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: Sto
     .map((part) => `${part}}`)
     .map((part) =>
       part
-        .replace(/{MAKER}/g, photo.make)
+        .replace(/{MAKER}/g, makerName)
         .replace(/{BODY}/g, photo.model || '')
         .replace(/{LENS}/g, photo.lensModel || '')
         .replace(/{ISO}/g, store.disableExposureMeter ? '' : photo.iso || '')
@@ -190,8 +195,8 @@ const STRAP_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: Sto
   const leftSecondaryWidth = leftSecondaryText ? context.measureText(leftSecondaryText).width : 0;
   const leftWidth = Math.max(leftPrimaryWidth, leftSecondaryWidth);
 
-  let TARGET_LOGO_HEIGHT = FONT_SIZE * 2;
-  const TARGET_LOGO_WIDTH = 400;
+  let TARGET_LOGO_HEIGHT = FONT_SIZE * 2.5;
+  const TARGET_LOGO_WIDTH = 500;
   let logo: HTMLImageElement | undefined;
   const maker = overrideExifMetadata()?.make || photo.metadata.make;
   const model = overrideExifMetadata()?.model || photo.metadata.model;
@@ -284,13 +289,15 @@ const STRAP_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: Sto
 
   context.fillStyle = PRIMARY_TEXT_COLOR;
   context.font = `normal 500 ${FONT_SIZE}px Barlow`;
-  let makerModelText = text2;
+  
+  // If logo exists and portrait image, use only model name (not maker) to save space
+  let makerModelText = (logo && isPortrait) ? (photo.model || '').trim() : text2;
   let topWidth = makerModelText ? context.measureText(makerModelText).width : 0;
 
   context.fillStyle = SECONDARY_TEXT_COLOR;
   context.font = `normal ${SECONDARY_TEXT_FONT_WEIGHT} ${FONT_SIZE}px Barlow`;
   const lensModelText = text4;
-  let bottomWidth = lensModelText ? context.measureText(lensModelText).width : 0;
+  const bottomWidth = lensModelText ? context.measureText(lensModelText).width : 0;
 
   let rightWidth = Math.max(topWidth, bottomWidth);
   let rightBlockLeft = canvas.width - FONT_SIZE - rightWidth;
@@ -298,7 +305,8 @@ const STRAP_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: Sto
   const minLogoLeft = FONT_SIZE + leftWidth + FONT_SIZE;
   let availableLogoWidth = maxLogoRight - minLogoLeft;
 
-  if (logo && availableLogoWidth <= 0) {
+  // Only apply compact text logic for portrait images
+  if (logo && isPortrait && availableLogoWidth <= 0) {
     const compactModelText = (photo.model || '').trim();
     if (compactModelText && compactModelText !== makerModelText) {
       makerModelText = compactModelText;
@@ -321,8 +329,8 @@ const STRAP_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: Sto
 
   // If there is no horizontal room between the left/right text blocks, we will draw the logo in a
   // fallback position (top-right). In that mode, keep the top-right text empty so the logo doesn't
-  // paint over the maker/model line (common on narrow portrait exports).
-  const useFallbackLogoPlacement = Boolean(logo) && availableLogoWidth <= 0;
+  // paint over the maker/model line (only for portrait images).
+  const useFallbackLogoPlacement = Boolean(logo) && isPortrait && availableLogoWidth <= 0;
   if (useFallbackLogoPlacement && makerModelText) {
     makerModelText = '';
     topWidth = 0;
@@ -371,9 +379,9 @@ const STRAP_FUNC: ThemeFunc = (photo: Photo, input: ThemeOptionInput, store: Sto
         TARGET_LOGO_HEIGHT
       );
     } else {
-      let fallbackHeight = FONT_SIZE * 1.4;
+      let fallbackHeight = FONT_SIZE * 2.2;
       let LOGO_WIDTH = (logo.width / logo.height) * fallbackHeight;
-      const fallbackMaxWidth = Math.min(TARGET_LOGO_WIDTH, Math.max(bottomWidth, FONT_SIZE * 3), canvas.width - FONT_SIZE * 2);
+      const fallbackMaxWidth = Math.min(TARGET_LOGO_WIDTH, Math.max(bottomWidth, FONT_SIZE * 5), canvas.width - FONT_SIZE * 2);
       if (LOGO_WIDTH > fallbackMaxWidth) {
         LOGO_WIDTH = fallbackMaxWidth;
         fallbackHeight = (logo.height / logo.width) * LOGO_WIDTH;

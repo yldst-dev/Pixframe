@@ -3,12 +3,26 @@ import { useTranslation } from 'react-i18next';
 import { useStore } from '../../store';
 import themes, { useThemeStore } from '../../themes';
 import Button from '../ui/button';
+import Toggle from '../ui/toggle';
+import IconButton from '../ui/icon-button';
+import { CgMoon, CgSun } from 'react-icons/cg';
 import { useDebouncedCallback } from '../../hooks/useDebounce';
 import { ThemeSettingsProps, NumberThemeOption, RangeSliderThemeOption, SelectThemeOption } from '../../types';
 
 const AVAILABLE_TAGS = [
   'MAKER', 'BODY', 'LENS', 'ISO', 'MM', 'F', 'SEC', 'TAKEN_AT'
 ];
+
+const THEME_DARK_MODE_SUPPORTED_THEMES = new Set<string>([
+  'Just frame',
+  'Simple',
+  'Strap',
+  'One line',
+  'Two line',
+  'Shot on one line',
+  'Shot on two line',
+  'Monitor',
+]);
 
 const TemplateBuilder: React.FC<{
   value: string;
@@ -72,9 +86,10 @@ const TemplateBuilder: React.FC<{
 
 const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isMobile = false }) => {
   const { t } = useTranslation();
-  const { selectedThemeName, setSelectedThemeName } = useStore();
+  const { selectedThemeName, setSelectedThemeName, themeDarkMode, setThemeDarkMode, setRerenderOptions } = useStore();
   const { option: themeOptions, setOption, replaceOptions } = useThemeStore();
   const selectedTheme = themes.find(theme => theme.name === selectedThemeName);
+  const themeDarkModeSupported = THEME_DARK_MODE_SUPPORTED_THEMES.has(selectedThemeName);
 
   // Local state to handle immediate UI updates while debouncing the actual store update
   const [localOptions, setLocalOptions] = React.useState<Map<string, string | number | boolean>>(new Map());
@@ -127,9 +142,26 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isMobile = false }) => {
       {/* Theme Selection - Only show on Desktop */}
       {!isMobile && (
         <div className="space-y-4">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
-            {t('theme.select', 'Select Theme')}
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
+              {t('theme.select', 'Select Theme')}
+            </h3>
+
+            <IconButton
+              size="sm"
+              variant={themeDarkMode ? 'primary' : 'outline'}
+              tooltip={t('root.settings.theme-dark-mode', 'Theme Dark Mode')}
+              aria-label={t('root.settings.theme-dark-mode', 'Theme Dark Mode')}
+              disabled={!themeDarkModeSupported}
+              onClick={() => {
+                if (!themeDarkModeSupported) return;
+                setThemeDarkMode(!themeDarkMode);
+                setRerenderOptions();
+              }}
+            >
+              {themeDarkMode ? <CgMoon size={18} /> : <CgSun size={18} />}
+            </IconButton>
+          </div>
           
           <div className="grid grid-cols-1 gap-[-1px] border border-border bg-border">
             {themes.map((theme) => (
@@ -192,7 +224,9 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isMobile = false }) => {
           </div>
 
           <div className="space-y-6">
-            {selectedTheme.options.map((option, index) => (
+            {selectedTheme.options
+              .filter((option) => !(selectedThemeName === 'Strap' && option.id === 'DARK_MODE'))
+              .map((option, index) => (
               <div key={index} className="space-y-2">
                 <label className="block text-xs font-bold text-foreground uppercase tracking-wide">
                   {option.id}
@@ -297,6 +331,16 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isMobile = false }) => {
                        <option key={opt} value={opt}>{opt}</option>
                      ))}
                    </select>
+                )}
+
+                {option.type === 'boolean' && (
+                  <div className="flex items-center justify-end">
+                    <Toggle
+                      size="sm"
+                      checked={getOptionValue(option.id, option.default) as boolean}
+                      onChange={(checked) => handleOptionChange(option.id, checked)}
+                    />
+                  </div>
                 )}
               </div>
             ))}

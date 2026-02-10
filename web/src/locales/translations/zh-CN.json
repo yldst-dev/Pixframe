@@ -57,11 +57,14 @@
 
   "root.settings.current-version": "当前版本",
   "root.settings.dark-mode": "暗黑模式",
+  "root.settings.theme-dark-mode": "主题暗黑模式",
   "root.settings.language": "语言",
   "root.settings.ratio": "裁剪比例",
   "root.settings.not-cropped-mode": "非裁剪模式",
   "root.settings.export-to-jpeg": "导出为 JPEG",
   "root.settings.maintain-exif": "保留 EXIF 元数据（仅支持 JPEG）",
+  "root.settings.maintain-exif.footer.on": "将保留包含位置信息（GPS）的原始元数据",
+  "root.settings.maintain-exif.footer.off": "将移除包含位置信息（GPS）的原始元数据",
   "root.settings.quality": "质量",
   "root.settings.fix-image-width": "固定图片宽度",
   "root.settings.date-notation": "日期表示",
@@ -80,6 +83,9 @@
   "root.settings.override-lens-model": "覆盖镜头型号",
   "root.settings.select-overridable-metadata": "选择可覆盖的元数据",
   "root.settings.create-metadata": "创建元数据",
+
+  "export.maintain-exif.description.on": "将保留包含位置信息（GPS）的原始元数据",
+  "export.maintain-exif.description.off": "将移除包含位置信息（GPS）的原始元数据",
 
   "privacy-policy": "隐私政策",
   "term-and-conditions": "条款和条件",
