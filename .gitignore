@@ -89,3 +89,6 @@ dist/
 # Temporary folders
 tmp/
 temp/
+
+# Patent / legal docs (local only)
+특허/
