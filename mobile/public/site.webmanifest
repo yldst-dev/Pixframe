@@ -3,7 +3,7 @@
   "short_name": "PixFrame",
   "icons": [
     {
-      "src": "/logo.png",
+      "src": "/favicon/logo.png",
       "sizes": "512x512",
       "type": "image/png"
     }
