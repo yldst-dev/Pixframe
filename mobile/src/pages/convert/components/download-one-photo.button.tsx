@@ -1,5 +1,6 @@
 import { useStore } from '../../../store';
 import { Button, Icon } from 'konsta/react';
+import { useTranslation } from 'react-i18next';
 import Photo from '../../../core/photo';
 import { IoDownloadOutline } from 'react-icons/io5';
 import themes from '../../../themes';
@@ -7,17 +8,18 @@ import render from '../../../core/drawing/render';
 import convert from '../../../core/drawing/convert';
 import free from '../../../core/drawing/free';
 import download from '../../../core/file-system/download';
+import { showToast } from '../../../core/toast';
 import { ThemeOptionInput, getConverter } from '../../theme/types/theme-option';
 import Customize from '../../theme/database/customize';
-// import { ExifRestorer } from 'exif-restorer'; // Temporarily disabled
 
 interface DownloadOnePhotoButtonProps {
   photo: Photo;
 }
 
 const DownloadOnePhotoButton: React.FC<DownloadOnePhotoButtonProps> = ({ photo }) => {
+  const { t } = useTranslation();
   const store = useStore();
-  const { selectedThemeName, exportToJpeg, maintainExif, quality, setLoading } = store;
+  const { selectedThemeName, exportToJpeg, quality, setLoading } = store;
 
   const input: ThemeOptionInput = new Map<string, string | number | boolean>();
   const theme = themes.find((theme) => theme.name === selectedThemeName);
@@ -36,22 +38,29 @@ const DownloadOnePhotoButton: React.FC<DownloadOnePhotoButtonProps> = ({ photo }
     <div className="w-10">
       <Button
         onClick={async () => {
-          setLoading(true);
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          try {
+            setLoading(true);
+            await new Promise((resolve) => setTimeout(resolve, 100));
 
-          const canvas = await render(func!, photo, input, store);
-          const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'webp'}`);
-          const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/webp', quality });
-          free(canvas);
+            const canvas = await render(func!, photo, input, store);
+            try {
+              const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'webp'}`);
+              const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/webp', quality });
+              await download(filename, data);
+            } finally {
+              free(canvas);
+            }
 
-          if (exportToJpeg && maintainExif) {
-            // await download(filename, ExifRestorer.restore(photo.imageBase64, data));
-            await download(filename, data); // Temporarily disabled EXIF restoration
-          } else {
-            await download(filename, data); // TODO: Add Exif data to the webp file
+            showToast(t('root.successfully-downloaded-in-gallery'));
+          } catch (error) {
+            console.error('Download failed:', error);
+            showToast({
+              message: t('error.download_failed', 'Download failed. Please try again.'),
+              variant: 'error',
+            });
+          } finally {
+            setLoading(false);
           }
-
-          setLoading(false);
         }}
       >
         <Icon ios={<IoDownloadOutline className="w-5 h-5" />} />

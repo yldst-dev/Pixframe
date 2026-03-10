@@ -1,4 +1,4 @@
-# Pixframe (v2.0.2)
+# Pixframe (v2.1.0)
 
 <div align="center">
   <img src="preview image.jpg" width="50%" alt="preview" />

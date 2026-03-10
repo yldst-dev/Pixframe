@@ -1,9 +1,18 @@
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
+import { Preferences } from '@capacitor/preferences';
 import { LocalStorageError } from '../types';
 
-/**
- * Safe localStorage utility class with error handling
- */
+const NATIVE_KEY_PREFIX = 'ls:';
+
 export class SafeStorage {
+  private static hydrated = false;
+  private static lifecycleReady = false;
+
+  private static isNativePlatform(): boolean {
+    return Capacitor.isNativePlatform();
+  }
+
   private static isAvailable(): boolean {
     try {
       const test = '__storage_test__';
@@ -15,12 +24,73 @@ export class SafeStorage {
     }
   }
 
-  /**
-   * Safely gets an item from localStorage
-   * @param key - The key to retrieve
-   * @param fallback - Fallback value if key doesn't exist or storage is unavailable
-   * @returns The stored value or fallback
-   */
+  private static toNativeKey(key: string): string {
+    return `${NATIVE_KEY_PREFIX}${key}`;
+  }
+
+  private static fromNativeKey(key: string): string {
+    return key.startsWith(NATIVE_KEY_PREFIX) ? key.slice(NATIVE_KEY_PREFIX.length) : key;
+  }
+
+  private static async setNativeItem(key: string, value: string): Promise<void> {
+    if (!this.isNativePlatform()) return;
+    await Preferences.set({ key: this.toNativeKey(key), value });
+  }
+
+  private static async removeNativeItem(key: string): Promise<void> {
+    if (!this.isNativePlatform()) return;
+    await Preferences.remove({ key: this.toNativeKey(key) });
+  }
+
+  static async hydrateFromNative(): Promise<void> {
+    if (this.hydrated) return;
+    this.hydrated = true;
+
+    if (!this.isNativePlatform() || !this.isAvailable()) return;
+
+    try {
+      const { keys } = await Preferences.keys();
+      const nativeKeys = keys.filter((key) => key.startsWith(NATIVE_KEY_PREFIX));
+      await Promise.all(
+        nativeKeys.map(async (nativeKey) => {
+          const { value } = await Preferences.get({ key: nativeKey });
+          if (value === null) return;
+          localStorage.setItem(this.fromNativeKey(nativeKey), value);
+        })
+      );
+    } catch (error) {
+      console.error('Failed to hydrate storage from native preferences', error);
+    }
+  }
+
+  static async flushToNative(): Promise<void> {
+    if (!this.isNativePlatform() || !this.isAvailable()) return;
+
+    try {
+      const keys = Object.keys(localStorage);
+      await Promise.all(
+        keys.map(async (key) => {
+          const value = localStorage.getItem(key);
+          if (value === null) return;
+          await this.setNativeItem(key, value);
+        })
+      );
+    } catch (error) {
+      console.error('Failed to flush local storage into native preferences', error);
+    }
+  }
+
+  static async setupLifecycleSync(): Promise<void> {
+    if (this.lifecycleReady || !this.isNativePlatform()) return;
+    this.lifecycleReady = true;
+
+    await App.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) {
+        void this.flushToNative();
+      }
+    });
+  }
+
   static getItem<T = string>(key: string, fallback: T): T {
     if (!this.isAvailable()) {
       console.warn(`localStorage is not available, using fallback for key: ${key}`);
@@ -39,12 +109,6 @@ export class SafeStorage {
     }
   }
 
-  /**
-   * Safely gets and parses a JSON item from localStorage
-   * @param key - The key to retrieve
-   * @param fallback - Fallback value if key doesn't exist, is invalid JSON, or storage is unavailable
-   * @returns The parsed value or fallback
-   */
   static getJSONItem<T>(key: string, fallback: T): T {
     if (!this.isAvailable()) {
       console.warn(`localStorage is not available, using fallback for key: ${key}`);
@@ -63,47 +127,23 @@ export class SafeStorage {
     }
   }
 
-  /**
-   * Safely gets a boolean item from localStorage
-   * @param key - The key to retrieve
-   * @param fallback - Fallback value
-   * @returns Boolean value or fallback
-   */
-  static getBooleanItem(key: string, fallback: boolean = false): boolean {
+  static getBooleanItem(key: string, fallback = false): boolean {
     const value = this.getItem(key, fallback.toString());
     return value === 'true';
   }
 
-  /**
-   * Safely gets a number item from localStorage
-   * @param key - The key to retrieve
-   * @param fallback - Fallback value
-   * @returns Number value or fallback
-   */
-  static getNumberItem(key: string, fallback: number = 0): number {
+  static getNumberItem(key: string, fallback = 0): number {
     const value = this.getItem(key, fallback.toString());
     const parsed = parseFloat(value);
-    return isNaN(parsed) ? fallback : parsed;
+    return Number.isNaN(parsed) ? fallback : parsed;
   }
 
-  /**
-   * Safely gets an integer item from localStorage
-   * @param key - The key to retrieve
-   * @param fallback - Fallback value
-   * @returns Integer value or fallback
-   */
-  static getIntItem(key: string, fallback: number = 0): number {
+  static getIntItem(key: string, fallback = 0): number {
     const value = this.getItem(key, fallback.toString());
     const parsed = parseInt(value, 10);
-    return isNaN(parsed) ? fallback : parsed;
+    return Number.isNaN(parsed) ? fallback : parsed;
   }
 
-  /**
-   * Safely sets an item in localStorage
-   * @param key - The key to set
-   * @param value - The value to store
-   * @throws LocalStorageError if unable to store
-   */
   static setItem(key: string, value: string): void {
     if (!this.isAvailable()) {
       throw new LocalStorageError('localStorage is not available', key);
@@ -111,48 +151,29 @@ export class SafeStorage {
 
     try {
       localStorage.setItem(key, value);
-    } catch (error) {
+      void this.setNativeItem(key, value);
+    } catch {
       throw new LocalStorageError(`Failed to set localStorage item for key: ${key}`, key);
     }
   }
 
-  /**
-   * Safely sets a JSON item in localStorage
-   * @param key - The key to set
-   * @param value - The value to serialize and store
-   * @throws LocalStorageError if unable to store or serialize
-   */
   static setJSONItem<T>(key: string, value: T): void {
     try {
       const serialized = JSON.stringify(value);
       this.setItem(key, serialized);
-    } catch (error) {
+    } catch {
       throw new LocalStorageError(`Failed to serialize value for localStorage key: ${key}`, key);
     }
   }
 
-  /**
-   * Safely sets a boolean item in localStorage
-   * @param key - The key to set
-   * @param value - The boolean value to store
-   */
   static setBooleanItem(key: string, value: boolean): void {
     this.setItem(key, value.toString());
   }
 
-  /**
-   * Safely sets a number item in localStorage
-   * @param key - The key to set
-   * @param value - The number value to store
-   */
   static setNumberItem(key: string, value: number): void {
     this.setItem(key, value.toString());
   }
 
-  /**
-   * Safely removes an item from localStorage
-   * @param key - The key to remove
-   */
   static removeItem(key: string): void {
     if (!this.isAvailable()) {
       console.warn(`localStorage is not available, cannot remove key: ${key}`);
@@ -161,14 +182,12 @@ export class SafeStorage {
 
     try {
       localStorage.removeItem(key);
+      void this.removeNativeItem(key);
     } catch (error) {
       console.error(`Failed to remove localStorage item for key: ${key}`, error);
     }
   }
 
-  /**
-   * Safely clears all localStorage items
-   */
   static clear(): void {
     if (!this.isAvailable()) {
       console.warn('localStorage is not available, cannot clear');
@@ -176,16 +195,16 @@ export class SafeStorage {
     }
 
     try {
+      const keys = this.keys();
       localStorage.clear();
+      keys.forEach((key) => {
+        void this.removeNativeItem(key);
+      });
     } catch (error) {
       console.error('Failed to clear localStorage', error);
     }
   }
 
-  /**
-   * Gets all localStorage keys safely
-   * @returns Array of keys or empty array if unavailable
-   */
   static keys(): string[] {
     if (!this.isAvailable()) {
       return [];
@@ -200,7 +219,11 @@ export class SafeStorage {
   }
 }
 
-// Convenience exports
+export async function initializeSafeStorage(): Promise<void> {
+  await SafeStorage.hydrateFromNative();
+  await SafeStorage.setupLifecycleSync();
+}
+
 export const getStorageItem = SafeStorage.getItem.bind(SafeStorage);
 export const getStorageJSONItem = SafeStorage.getJSONItem.bind(SafeStorage);
 export const getStorageBooleanItem = SafeStorage.getBooleanItem.bind(SafeStorage);

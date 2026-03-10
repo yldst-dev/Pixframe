@@ -1,8 +1,9 @@
-import React, { useMemo, useEffect, useState, useCallback } from 'react';
+import React, { useMemo, useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import ImageIcon from '../../icons/image.icon';
 import Button from '../ui/button';
 import IconButton from '../ui/icon-button';
+import PfLoader from '../ui/pf-loader';
 import TrashIcon from '../../icons/trash.icon';
 import { useStore } from '../../store';
 import themes, { useThemeStore } from '../../themes';
@@ -11,11 +12,61 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { ImagePreviewProps } from '../../types';
 import DownloadSettingsModal from './download-settings-modal';
 import { getExportFormat } from '../../utils/export-format';
+import { IoCheckmarkCircle, IoDownloadOutline } from 'react-icons/io5';
+
+const PREVIEW_CACHE_LIMIT = 24;
+
+const canvasToDataUrl = async (canvas: HTMLCanvasElement, mimeType: string, quality?: number): Promise<string> => {
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((nextBlob) => {
+      if (nextBlob) {
+        resolve(nextBlob);
+        return;
+      }
+      reject(new Error('Failed to encode preview image'));
+    }, mimeType, quality);
+  });
+
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error('Failed to read preview image'));
+    };
+    reader.onerror = () => reject(new Error('Failed to read preview image'));
+    reader.readAsDataURL(blob);
+  });
+};
 
 const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
   const { t } = useTranslation();
   const store = useStore();
-  const { darkMode, selectedThemeName } = store;
+  const {
+    darkMode,
+    selectedThemeName,
+    exportToJpeg,
+    quality,
+    photos,
+    themeDarkMode,
+    fixWatermark,
+    watermark,
+    enableFixImageWidth,
+    fixImageWidth,
+    disableExposureMeter,
+    ratio,
+    notCroppedMode,
+    showCameraMaker,
+    showCameraModel,
+    showLensModel,
+    overrideCameraMaker,
+    overrideCameraModel,
+    overrideLensModel,
+    rerenderOptions,
+    setRerenderOptions,
+  } = store;
   const themeStore = useThemeStore();
   const [themedPreview, setThemedPreview] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -23,10 +74,106 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
   const [showModal, setShowModal] = useState(false);
   const [showDownloadSettings, setShowDownloadSettings] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showDownloadSuccess, setShowDownloadSuccess] = useState(false);
+
+  const previewCacheRef = useRef<Map<string, string>>(new Map());
+  const previewCacheOrderRef = useRef<string[]>([]);
+  const generationIdRef = useRef(0);
+  const renderStoreRef = useRef(store);
+  const downloadSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    renderStoreRef.current = store;
+  }, [store]);
 
   const debouncedThemeOptions = useDebounce(themeStore.option, 300);
-  
-  
+
+  const themeOptionSignature = useMemo(() => {
+    return JSON.stringify(
+      Array.from(debouncedThemeOptions.entries()).sort(([keyA], [keyB]) =>
+        keyA.localeCompare(keyB)
+      )
+    );
+  }, [debouncedThemeOptions]);
+
+  const renderSettingSignature = useMemo(() => {
+    return JSON.stringify({
+      selectedThemeName,
+      themeDarkMode,
+      fixWatermark,
+      watermark,
+      enableFixImageWidth,
+      fixImageWidth,
+      disableExposureMeter,
+      ratio,
+      notCroppedMode,
+      showCameraMaker,
+      showCameraModel,
+      showLensModel,
+      overrideCameraMaker,
+      overrideCameraModel,
+      overrideLensModel,
+      exportToJpeg,
+      quality,
+      rerenderOptions,
+    });
+  }, [
+    selectedThemeName,
+    themeDarkMode,
+    fixWatermark,
+    watermark,
+    enableFixImageWidth,
+    fixImageWidth,
+    disableExposureMeter,
+    ratio,
+    notCroppedMode,
+    showCameraMaker,
+    showCameraModel,
+    showLensModel,
+    overrideCameraMaker,
+    overrideCameraModel,
+    overrideLensModel,
+    exportToJpeg,
+    quality,
+    rerenderOptions,
+  ]);
+
+  const previewCacheKey = useMemo(() => {
+    if (!selectedPhoto || !selectedThemeName) {
+      return '';
+    }
+
+    return [
+      selectedPhoto.file.name,
+      selectedPhoto.file.size,
+      selectedPhoto.file.lastModified,
+      selectedThemeName,
+      themeOptionSignature,
+      renderSettingSignature,
+    ].join('::');
+  }, [selectedPhoto, selectedThemeName, themeOptionSignature, renderSettingSignature]);
+
+  const cachePreview = useCallback((cacheKey: string, preview: string) => {
+    const cache = previewCacheRef.current;
+    const order = previewCacheOrderRef.current;
+
+    const existingIndex = order.indexOf(cacheKey);
+    if (existingIndex >= 0) {
+      order.splice(existingIndex, 1);
+    }
+
+    cache.set(cacheKey, preview);
+    order.push(cacheKey);
+
+    while (order.length > PREVIEW_CACHE_LIMIT) {
+      const oldest = order.shift();
+      if (!oldest) {
+        break;
+      }
+      cache.delete(oldest);
+    }
+  }, []);
+
   const formatFileSize = useCallback((bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -34,8 +181,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }, []);
-  
-  const generateExportPreview = useCallback(async () => {
+
+  useEffect(() => {
     if (!selectedPhoto || !selectedThemeName) {
       setThemedPreview(null);
       setIsGenerating(false);
@@ -43,70 +190,96 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
       return;
     }
 
-    const isInitialLoad = !themedPreview;
-    
-    if (isInitialLoad) {
-      setIsGenerating(true);
-      setThemedPreview(null);
+    const cachedPreview = previewCacheRef.current.get(previewCacheKey);
+    if (cachedPreview) {
+      setThemedPreview(cachedPreview);
+      setIsGenerating(false);
+      setGenerationError(null);
+      return;
     }
+
+    const generationId = generationIdRef.current + 1;
+    generationIdRef.current = generationId;
+    setThemedPreview(null);
     setGenerationError(null);
+    setIsGenerating(true);
 
-    try {
-      const selectedTheme = themes.find(theme => theme.name === selectedThemeName);
-      if (!selectedTheme) {
-        console.error('Available themes:', themes.map(t => t.name));
-        console.error('Selected theme name:', selectedThemeName);
-        throw new Error(`Theme "${selectedThemeName}" not found. Available themes: ${themes.map(t => t.name).join(', ')}`);
-      }
-
-      const themeOptions = new Map();
-      
-      selectedTheme.options.forEach(option => {
-        themeOptions.set(option.id, option.default);
-      });
-      
-      debouncedThemeOptions.forEach((value, key) => {
-        if (selectedTheme.options.some(opt => opt.id === key)) {
-          themeOptions.set(key, value);
+    const generate = async () => {
+      try {
+        const selectedTheme = themes.find((theme) => theme.name === selectedThemeName);
+        if (!selectedTheme) {
+          throw new Error(`Theme "${selectedThemeName}" not found`);
         }
-      });
 
-      await new Promise(resolve => requestAnimationFrame(resolve));
-      
-      const canvas = await render(selectedTheme.func, selectedPhoto, themeOptions, store);
-      
-      if (!canvas || canvas.width === 0 || canvas.height === 0) {
-        throw new Error('Generated canvas is invalid');
-      }
+        const themeOptions = new Map();
+        selectedTheme.options.forEach((option) => {
+          themeOptions.set(option.id, option.default);
+        });
 
-      const { mimeType, useJpeg } = getExportFormat(selectedPhoto.file.name, store.exportToJpeg);
-      const dataUrl = canvas.toDataURL(mimeType, useJpeg ? store.quality || 0.95 : undefined);
-      
-      setThemedPreview(dataUrl);
-      
-    } catch (error) {
-      console.error('Failed to generate export preview:', error);
-      setGenerationError(error instanceof Error ? error.message : 'Unknown error occurred');
-      setThemedPreview(null);
-    } finally {
-      if (isInitialLoad) {
-        setIsGenerating(false);
+        debouncedThemeOptions.forEach((value, key) => {
+          if (selectedTheme.options.some((option) => option.id === key)) {
+            themeOptions.set(key, value);
+          }
+        });
+
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+
+        const canvas = await render(selectedTheme.func, selectedPhoto, themeOptions, renderStoreRef.current);
+
+        if (!canvas || canvas.width === 0 || canvas.height === 0) {
+          throw new Error('Generated canvas is invalid');
+        }
+
+        const { mimeType, useJpeg } = getExportFormat(selectedPhoto.file.name, exportToJpeg);
+        const previewUrl = await canvasToDataUrl(canvas, mimeType, useJpeg ? quality || 0.95 : undefined);
+
+        if (generationIdRef.current !== generationId) {
+          return;
+        }
+
+        cachePreview(previewCacheKey, previewUrl);
+        setThemedPreview(previewUrl);
+      } catch (error) {
+        if (generationIdRef.current !== generationId) {
+          return;
+        }
+        console.error('Failed to generate export preview:', error);
+        setGenerationError(error instanceof Error ? error.message : 'Unknown error occurred');
+        setThemedPreview(null);
+      } finally {
+        if (generationIdRef.current === generationId) {
+          setIsGenerating(false);
+        }
       }
-    }
+    };
+
+    void generate();
   }, [
     selectedPhoto,
     selectedThemeName,
     debouncedThemeOptions,
-    themedPreview,
-    store
+    previewCacheKey,
+    cachePreview,
+    exportToJpeg,
+    quality,
   ]);
 
-  useEffect(() => {
-    generateExportPreview();
-  }, [generateExportPreview]);
-
   const handleImageClick = useCallback(() => {
+    if (!themedPreview) {
+      return;
+    }
     setShowModal(true);
+  }, [themedPreview]);
+
+  const triggerDownloadSuccess = useCallback(() => {
+    if (downloadSuccessTimerRef.current) {
+      clearTimeout(downloadSuccessTimerRef.current);
+    }
+    setShowDownloadSuccess(true);
+    downloadSuccessTimerRef.current = setTimeout(() => {
+      setShowDownloadSuccess(false);
+      downloadSuccessTimerRef.current = null;
+    }, 2000);
   }, []);
 
   const handleOpenDownloadSettings = useCallback(() => {
@@ -119,27 +292,27 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
     setIsDownloading(true);
     setShowDownloadSettings(false);
     try {
-      const selectedTheme = themes.find(theme => theme.name === selectedThemeName);
+      const selectedTheme = themes.find((theme) => theme.name === selectedThemeName);
       if (!selectedTheme) {
         throw new Error(`Theme "${selectedThemeName}" not found`);
       }
 
       const themeOptions = new Map();
-      selectedTheme.options.forEach(option => {
+      selectedTheme.options.forEach((option) => {
         themeOptions.set(option.id, option.default);
       });
       themeStore.option.forEach((value, key) => {
-        if (selectedTheme.options.some(opt => opt.id === key)) {
+        if (selectedTheme.options.some((option) => option.id === key)) {
           themeOptions.set(key, value);
         }
       });
 
-      const canvas = await render(selectedTheme.func, selectedPhoto, themeOptions, store);
-      const { mimeType, extension, useJpeg } = getExportFormat(selectedPhoto.file.name, store.exportToJpeg);
-      const quality = useJpeg ? store.quality || 0.95 : undefined;
-      const dataUrl = canvas.toDataURL(mimeType, quality);
+      const canvas = await render(selectedTheme.func, selectedPhoto, themeOptions, renderStoreRef.current);
+      const { mimeType, extension, useJpeg } = getExportFormat(selectedPhoto.file.name, exportToJpeg);
+      const downloadQuality = useJpeg ? quality || 0.95 : undefined;
+      const dataUrl = canvas.toDataURL(mimeType, downloadQuality);
 
-      const baseFileName = selectedPhoto.file.name.replace(/\.[^/.]+$/, "");
+      const baseFileName = selectedPhoto.file.name.replace(/\.[^/.]+$/, '');
       const themeName = selectedThemeName.replace(/\s+/g, '_').toLowerCase();
       const link = document.createElement('a');
       link.href = dataUrl;
@@ -147,6 +320,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      triggerDownloadSuccess();
     } catch (error) {
       console.error('Download failed:', error);
       alert(t('error.download_failed', 'Download failed. Please try again.'));
@@ -158,8 +332,10 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
     selectedPhoto,
     selectedThemeName,
     themeStore.option,
-    store,
-    t
+    exportToJpeg,
+    quality,
+    t,
+    triggerDownloadSuccess,
   ]);
 
   const handleEscKey = useCallback((event: KeyboardEvent) => {
@@ -177,9 +353,17 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
     }
   }, [showModal, handleEscKey]);
 
+  useEffect(() => {
+    return () => {
+      if (downloadSuccessTimerRef.current) {
+        clearTimeout(downloadSuccessTimerRef.current);
+      }
+    };
+  }, []);
+
   const previewInfo = useMemo(() => {
     if (!selectedPhoto) return null;
-    
+
     return {
       originalSize: `${selectedPhoto.image.naturalWidth} × ${selectedPhoto.image.naturalHeight}`,
       outputSize: `${selectedPhoto.image.width} × ${selectedPhoto.image.height}`,
@@ -195,38 +379,43 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
             <ImageIcon size={32} />
           </div>
           <div className="space-y-2">
-            <h3 className="font-medium text-gray-900 dark:text-white">
-              {t('preview.no-selection', 'No Image Selected')}
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {t('preview.select-instruction', 'Select an image from the grid to see the export preview')}
-            </p>
+            <h3 className="font-medium text-gray-900 dark:text-white">{t('preview.no-selection', 'No Image Selected')}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('preview.select-instruction', 'Select an image from the grid to see the export preview')}</p>
           </div>
         </div>
       </div>
     );
   }
 
+  const previewSrc = themedPreview || selectedPhoto.image.src;
+
   return (
     <div className="flex flex-col h-full">
-
       <div className="flex-1 flex flex-col p-0 min-h-0">
-        <div 
+        <div
           className="flex-1 bg-gray-100 dark:bg-gray-800 overflow-hidden min-h-0 image-preview-container"
           style={{
-            backgroundColor: darkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(243, 244, 246, 0.8)'
+            backgroundColor: darkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(243, 244, 246, 0.8)',
           }}
         >
-          {themedPreview ? (
-            <div className="w-full h-full p-0 image-preview-container">
+          {previewSrc ? (
+            <div className="w-full h-full p-0 image-preview-container relative">
               <img
-                src={themedPreview}
+                src={previewSrc}
                 alt={`Export preview - ${selectedPhoto.file.name}`}
-                className="max-w-full max-h-full object-contain hover:opacity-90 cursor-pointer"
+                className={`max-w-full max-h-full object-contain ${themedPreview ? 'hover:opacity-90 cursor-pointer' : ''}`}
                 onClick={handleImageClick}
                 loading="lazy"
                 decoding="async"
               />
+              {isGenerating && !themedPreview && (
+                <div className="absolute inset-0 bg-black/10 flex items-center justify-center pointer-events-none">
+                  <div className="flex items-center gap-2 px-3 py-2 bg-black/70 text-white text-xs rounded-md">
+                    <PfLoader className="w-4 h-4" />
+                    <span>{t('preview.generating', '미리보기 생성 중...')}</span>
+                  </div>
+                </div>
+              )}
             </div>
           ) : generationError ? (
             <div className="flex items-center justify-center h-full">
@@ -237,18 +426,14 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-red-800 dark:text-red-200 mb-1">
-                    {t('preview.generation-error', 'Preview generation failed')}
-                  </p>
-                  <p className="text-xs text-red-600 dark:text-red-400">
-                    {generationError}
-                  </p>
+                  <p className="text-sm font-medium text-red-800 dark:text-red-200 mb-1">{t('preview.generation-error', 'Preview generation failed')}</p>
+                  <p className="text-xs text-red-600 dark:text-red-400">{generationError}</p>
                 </div>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
+                  onClick={(event) => {
+                    event.stopPropagation();
                     setGenerationError(null);
-                    store.setRerenderOptions();
+                    setRerenderOptions();
                   }}
                   className="text-xs px-3 py-1 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-md hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors"
                 >
@@ -259,16 +444,10 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
           ) : isGenerating ? (
             <div className="flex items-center justify-center h-full">
               <div className="text-center space-y-3">
-                <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                <PfLoader className="w-10 h-10 text-blue-500 mx-auto" />
                 <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('preview.generating', '미리보기 생성 중...')}
-                  </p>
-                  {selectedThemeName && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {selectedThemeName}
-                    </p>
-                  )}
+                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('preview.generating', '미리보기 생성 중...')}</p>
+                  {selectedThemeName && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{selectedThemeName}</p>}
                 </div>
               </div>
             </div>
@@ -280,9 +459,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {t('preview.waiting', 'Select a theme to see preview')}
-                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t('preview.waiting', 'Select a theme to see preview')}</p>
               </div>
             </div>
           )}
@@ -294,7 +471,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
           <div className="font-medium text-gray-900 dark:text-white truncate" title={selectedPhoto.file.name}>
             {selectedPhoto.file.name}
           </div>
-          
+
           {previewInfo && (
             <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
               <div className="flex justify-between">
@@ -314,25 +491,38 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
         </div>
 
         <div className="flex space-x-2">
-          <Button 
-            variant="primary" 
-            className="flex-1"
+          <Button
+            variant="primary"
+            className={`flex-1 !transition-[background-color,color,border-color] !duration-500 !ease-[cubic-bezier(0.4,0,0.2,1)] ${showDownloadSuccess ? '!bg-emerald-500 !border-emerald-500 !text-white' : ''}`}
             disabled={!themedPreview}
             onClick={handleOpenDownloadSettings}
           >
-            {themedPreview
-              ? t('preview.download-single', '이 사진 다운로드') 
-              : t('preview.generating', '생성 중...')
-            }
+            <span className="inline-flex items-center justify-center gap-2">
+              <span className="relative block h-4 w-4">
+                <IoDownloadOutline
+                  className={`absolute inset-0 h-4 w-4 transition-[opacity,transform,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${showDownloadSuccess ? 'scale-50 opacity-0 blur-[2px]' : 'scale-100 opacity-100 blur-0'}`}
+                />
+                <IoCheckmarkCircle
+                  key={showDownloadSuccess ? 'success' : 'idle'}
+                  className="absolute inset-0 h-4 w-4 text-white"
+                  style={showDownloadSuccess ? { animation: 'pf-success-pop 600ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards' } : { opacity: 0 }}
+                />
+              </span>
+              {showDownloadSuccess
+                ? t('preview.download-complete', '다운로드 완료')
+                : themedPreview
+                  ? t('preview.download-single', '이 사진 다운로드')
+                  : t('preview.generating', '생성 중...')}
+            </span>
           </Button>
-          
+
           <IconButton
             variant="ghost"
             className="h-10 w-10 !bg-red-50 !text-red-600 !border-red-100 rounded-md transition-none hover:!bg-red-50 active:!bg-red-50 focus:!bg-red-50 focus:!ring-0"
             disabled={!selectedPhoto}
             onClick={() => {
-              const event = new CustomEvent('delete-current-photo', { 
-                detail: { index: store.photos.indexOf(selectedPhoto) } 
+              const event = new CustomEvent('delete-current-photo', {
+                detail: { index: photos.indexOf(selectedPhoto) },
               });
               window.dispatchEvent(event);
             }}
@@ -343,14 +533,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
       </div>
 
       {showModal && themedPreview && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
-          onClick={() => setShowModal(false)}
-        >
-          <div 
-            className="relative flex items-center justify-center"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
+          <div className="relative flex items-center justify-center" onClick={(event) => event.stopPropagation()}>
             <button
               onClick={() => setShowModal(false)}
               className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-colors backdrop-blur-sm"
@@ -367,7 +551,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
                 maxWidth: '90vw',
                 maxHeight: '85vh',
                 width: 'auto',
-                height: 'auto'
+                height: 'auto',
               }}
             />
           </div>

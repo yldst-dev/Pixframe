@@ -1,20 +1,10 @@
-// Core types for the EXIF Frame Web App
 
 import Photo from '../core/photo';
 
-/**
- * Supported languages in the application
- */
 export type SupportedLanguage = 'en' | 'ja' | 'ko' | 'zh-CN';
 
-/**
- * Panel position types
- */
 export type PanelPosition = 'left' | 'right' | null;
 
-/**
- * Photo interface with extended properties for UI components
- */
 export interface PhotoData {
   file: File;
   image: HTMLImageElement;
@@ -23,9 +13,6 @@ export interface PhotoData {
   metadata: ExifMetadataData;
 }
 
-/**
- * EXIF Metadata interface
- */
 export interface ExifMetadataData {
   make?: string;
   model?: string;
@@ -38,16 +25,10 @@ export interface ExifMetadataData {
   takenAt?: string;
 }
 
-/**
- * Override metadata interface
- */
 export interface OverrideMetadata {
   [key: string]: string;
 }
 
-/**
- * Theme option base interface
- */
 export interface ThemeOptionBase {
   id: string;
   description?: string;
@@ -57,17 +38,11 @@ export interface ThemeOptionBase {
 export type ThemeOptionValue = string | number | boolean;
 export type ThemeOptionsMap = Map<string, ThemeOptionValue>;
 
-/**
- * Color theme option
- */
 export interface ColorThemeOption extends ThemeOptionBase {
   type: 'color';
   default: string;
 }
 
-/**
- * Number theme option
- */
 export interface NumberThemeOption extends ThemeOptionBase {
   type: 'number';
   default: number;
@@ -76,34 +51,22 @@ export interface NumberThemeOption extends ThemeOptionBase {
   step?: number;
 }
 
-/**
- * String theme option
- */
 export interface StringThemeOption extends ThemeOptionBase {
   type: 'string';
   default: string;
 }
 
-/**
- * Select theme option
- */
 export interface SelectThemeOption extends ThemeOptionBase {
   type: 'select';
   default: string;
   options: string[];
 }
 
-/**
- * Boolean theme option
- */
 export interface BooleanThemeOption extends ThemeOptionBase {
   type: 'boolean';
   default: boolean;
 }
 
-/**
- * Range slider theme option
- */
 export interface RangeSliderThemeOption extends ThemeOptionBase {
   type: 'range-slider';
   default: number;
@@ -112,9 +75,6 @@ export interface RangeSliderThemeOption extends ThemeOptionBase {
   step?: number;
 }
 
-/**
- * Union type for all theme option types
- */
 export type ThemeOption = 
   | ColorThemeOption 
   | NumberThemeOption 
@@ -123,18 +83,12 @@ export type ThemeOption =
   | BooleanThemeOption 
   | RangeSliderThemeOption;
 
-/**
- * Theme interface
- */
 export interface Theme {
   name: string;
   options: ThemeOption[];
   func: (canvas: CanvasRenderingContext2D, photo: Photo, options: ThemeOptionsMap, store: Store) => void;
 }
 
-/**
- * Component props interfaces
- */
 export interface ImagePreviewProps {
   selectedPhoto: Photo | null;
 }
@@ -144,9 +98,12 @@ export interface ThemeSettingsProps {
   isMobile?: boolean;
 }
 
-/**
- * Store state interface (partial - to be extended)
- */
+export interface LoadingProgress {
+  current: number;
+  total: number;
+  currentFileName: string;
+}
+
 export interface StoreState {
   tabIndex: number;
   overrideMetadataIndexPopup: boolean;
@@ -174,6 +131,7 @@ export interface StoreState {
   themeDarkMode: boolean;
   photos: Photo[];
   loading: boolean;
+  loadingProgress: LoadingProgress;
   overrideMetadataPopup: boolean;
   overrideMetadataTarget: Photo | null;
   fixWatermark: boolean;
@@ -191,9 +149,6 @@ export interface StoreState {
   notCroppedMode: boolean;
 }
 
-/**
- * Store actions interface
- */
 export interface StoreActions {
   setTabIndex: (tabIndex: number) => void;
   setOverrideMetadataIndexPopup: (opened: boolean) => void;
@@ -224,6 +179,8 @@ export interface StoreActions {
   removePhoto: (index: number) => void;
   clearAllPhotos: () => void;
   setLoading: (loading: boolean) => void;
+  setLoadingProgress: (loadingProgress: LoadingProgress | number) => void;
+  resetLoadingProgress: () => void;
   setOverrideMetadataPopup: (opened: boolean) => void;
   setOverrideMetadataTarget: (target: Photo) => void;
   setFixWatermark: (fixWatermark: boolean) => void;
@@ -241,14 +198,8 @@ export interface StoreActions {
   setNotCroppedMode: (notCroppedMode: boolean) => void;
 }
 
-/**
- * Combined Store interface
- */
 export interface Store extends StoreState, StoreActions {}
 
-/**
- * Error types
- */
 export class LocalStorageError extends Error {
   constructor(message: string, public readonly key?: string) {
     super(message);

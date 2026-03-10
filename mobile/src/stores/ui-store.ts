@@ -2,10 +2,18 @@ import { create } from 'zustand';
 import { PanelPosition } from '../types';
 import { SafeStorage } from '../utils/safe-storage';
 
-/**
- * UI-related state management
- * Handles tabs, panels, popups, and language settings
- */
+export interface LoadingProgress {
+  current: number;
+  total: number;
+  currentFileName: string;
+}
+
+const DEFAULT_LOADING_PROGRESS: LoadingProgress = {
+  current: 0,
+  total: 0,
+  currentFileName: '',
+};
+
 export interface UIState {
   tabIndex: number;
   openedPanel: PanelPosition;
@@ -17,6 +25,7 @@ export interface UIState {
   ratioPopover: boolean;
   overrideMetadataPopup: boolean;
   loading: boolean;
+  loadingProgress: LoadingProgress;
   darkMode: boolean;
 }
 
@@ -31,13 +40,14 @@ export interface UIActions {
   setRatioPopover: (opened: boolean) => void;
   setOverrideMetadataPopup: (opened: boolean) => void;
   setLoading: (loading: boolean) => void;
+  setLoadingProgress: (loadingProgress: LoadingProgress | number) => void;
+  resetLoadingProgress: () => void;
   setDarkMode: (darkMode: boolean) => void;
 }
 
 export type UIStore = UIState & UIActions;
 
 export const useUIStore = create<UIStore>((set) => ({
-  // State
   tabIndex: 0,
   openedPanel: null,
   overrideMetadataIndexPopup: false,
@@ -48,9 +58,9 @@ export const useUIStore = create<UIStore>((set) => ({
   ratioPopover: false,
   overrideMetadataPopup: false,
   loading: false,
+  loadingProgress: DEFAULT_LOADING_PROGRESS,
   darkMode: SafeStorage.getBooleanItem('darkMode', false),
 
-  // Actions
   setTabIndex: (tabIndex: number) => set({ tabIndex }),
   setOpenedPanel: (panel: PanelPosition) => set({ openedPanel: panel }),
   setOverrideMetadataIndexPopup: (opened: boolean) => set({ overrideMetadataIndexPopup: opened }),
@@ -60,7 +70,19 @@ export const useUIStore = create<UIStore>((set) => ({
   setDateNotationPopover: (opened: boolean) => set({ dateNotationPopover: opened }),
   setRatioPopover: (opened: boolean) => set({ ratioPopover: opened }),
   setOverrideMetadataPopup: (opened: boolean) => set({ overrideMetadataPopup: opened }),
-  setLoading: (loading: boolean) => set({ loading }),
+  setLoading: (loading: boolean) => set({ loading, loadingProgress: DEFAULT_LOADING_PROGRESS }),
+  setLoadingProgress: (loadingProgress: LoadingProgress | number) =>
+    set({
+      loadingProgress:
+        typeof loadingProgress === 'number'
+          ? {
+              current: Math.min(100, Math.max(0, Math.round(loadingProgress))),
+              total: 100,
+              currentFileName: '',
+            }
+          : loadingProgress,
+    }),
+  resetLoadingProgress: () => set({ loadingProgress: DEFAULT_LOADING_PROGRESS }),
   setDarkMode: (darkMode: boolean) =>
     set(() => {
       try {
@@ -73,7 +95,6 @@ export const useUIStore = create<UIStore>((set) => ({
     }),
 }));
 
-// Initialize dark mode on load
 try {
   const initialDarkMode = useUIStore.getState().darkMode;
   document.getElementById('theme')!.className = initialDarkMode ? 'dark' : 'light';

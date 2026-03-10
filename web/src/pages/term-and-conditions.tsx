@@ -86,7 +86,7 @@ const TermAndConditionsPage = () => {
 
         <BlockTitle>Contact Us</BlockTitle>
         <Block>
-          <p>If you have any questions or suggestions about the Terms and Conditions, please do not hesitate to contact the Service Provider at help@yuru.cam.</p>
+          <p>If you have any questions or suggestions about the Terms and Conditions, please do not hesitate to contact the Service Provider at help@yldst.cam.</p>
         </Block>
       </Page>
     </>

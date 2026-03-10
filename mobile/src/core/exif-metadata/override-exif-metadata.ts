@@ -1,6 +1,8 @@
+import { SafeStorage } from '../../utils/safe-storage';
+
 const overrideExifMetadata = () => {
-  const overridableMetadata: { [key: string]: string }[] = JSON.parse(localStorage.getItem('overridableMetadata') || '[]');
-  const overrideMetadataIndex: number | null = JSON.parse(localStorage.getItem('overrideMetadataIndex') || 'null');
+  const overridableMetadata = SafeStorage.getJSONItem<{ [key: string]: string }[]>('overridableMetadata', []);
+  const overrideMetadataIndex = SafeStorage.getJSONItem<number | null>('overrideMetadataIndex', null);
   const metadata = overrideMetadataIndex == null ? null : overridableMetadata.length > overrideMetadataIndex ? overridableMetadata[overrideMetadataIndex] : null;
   return metadata;
 };

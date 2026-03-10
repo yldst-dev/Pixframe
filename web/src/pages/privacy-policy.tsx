@@ -90,7 +90,7 @@ const PrivacyPolicyPage = () => {
         <Block>
           <p>
             The Service Provider will retain User Provided data for as long as you use the Application and for a reasonable time thereafter. If you'd like them to delete User Provided Data that you
-            have provided via the Application, please contact them at help@yuru.cam and they will respond in a reasonable time.
+            have provided via the Application, please contact them at help@yldst.cam and they will respond in a reasonable time.
           </p>
           <br />
         </Block>
@@ -105,7 +105,7 @@ const PrivacyPolicyPage = () => {
               identifiable information through the Application and/or Services. The Service Provider encourage parents and legal guardians to monitor their children's Internet usage and to help
               enforce this Policy by instructing their children never to provide personally identifiable information through the Application and/or Services without their permission. If you have
               reason to believe that a child has provided personally identifiable information to the Service Provider through the Application and/or Services, please contact the Service Provider
-              (help@yuru.cam) so that they will be able to take the necessary actions. You must also be at least 16 years of age to consent to the processing of your personally identifiable
+              (help@yldst.cam) so that they will be able to take the necessary actions. You must also be at least 16 years of age to consent to the processing of your personally identifiable
               information in your country (in some countries we may allow your parent or guardian to do so on your behalf).
             </p>
           </div>
@@ -140,7 +140,7 @@ const PrivacyPolicyPage = () => {
 
         <BlockTitle>Contact Us</BlockTitle>
         <Block>
-          <p>If you have any questions regarding privacy while using the Application, or have questions about the practices, please contact the Service Provider via email at help@yuru.cam.</p>
+          <p>If you have any questions regarding privacy while using the Application, or have questions about the practices, please contact the Service Provider via email at help@yldst.cam.</p>
         </Block>
       </Page>
     </>

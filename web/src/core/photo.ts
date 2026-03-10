@@ -1,7 +1,5 @@
-import { load } from 'exifreader';
-import heic2any from 'heic2any';
+import { load, type Tags } from 'exifreader';
 import ExifMetadata from './exif-metadata/exif-metadata';
-import thumbnail from './drawing/thumbnail';
 import overrideExifMetadata from './exif-metadata/override-exif-metadata';
 import { SafeStorage } from '../utils/safe-storage';
 
@@ -28,25 +26,24 @@ class Photo {
    */
   public static async create(file: File): Promise<Photo> {
     const photo = new Photo();
-    
-    // Check if file is HEIC/HEIF and convert if necessary
-    const isHeif = file.type === 'image/heic' || file.type === 'image/heif' || 
-                   file.name.toLowerCase().endsWith('.heic') || 
-                   file.name.toLowerCase().endsWith('.heif');
-    
+
+    const isHeif = file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+    const metadataPromise = load(file).catch((error) => {
+      console.error('Failed to parse EXIF metadata:', error);
+      return {} as Tags;
+    });
+
     let processedFile = file;
-    
+
     if (isHeif) {
       try {
-        // Convert HEIC/HEIF to JPEG for browser compatibility
+        const { default: heic2any } = await import('heic2any');
         const convertedBlob = await heic2any({
           blob: file,
           toType: 'image/jpeg',
-          quality: 0.95
+          quality: 0.95,
         }) as Blob;
-        
-        // Create a new File object from the converted blob
-        // Keep original filename but change extension to .jpg
+
         const originalName = file.name.replace(/\.(heic|heif)$/i, '');
         processedFile = new File([convertedBlob], `${originalName}.jpg`, {
           type: 'image/jpeg',
@@ -57,25 +54,29 @@ class Photo {
         throw new Error(`Failed to process HEIC/HEIF file: ${file.name}. ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     }
-    
-    // Store both original and processed files
-    photo.file = processedFile; // Use converted file for processing
-    photo.metadata = new ExifMetadata(await load(file)); // Use original file for EXIF data
+
+    photo.file = processedFile;
     photo.image = new Image();
-    photo.image.src = URL.createObjectURL(processedFile);
-    await new Promise((resolve, reject) => {
-      photo.image.onload = resolve;
-      photo.image.onerror = () => reject(new Error(`Failed to load image: ${processedFile.name}`));
-    });
+    const objectUrl = URL.createObjectURL(processedFile);
+    photo.image.src = objectUrl;
 
-    photo.imageBase64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(processedFile);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error(`Failed to read file as data URL: ${processedFile.name}`));
-    });
+    try {
+      await Promise.all([
+        new Promise((resolve, reject) => {
+          photo.image.onload = resolve;
+          photo.image.onerror = () => reject(new Error(`Failed to load image: ${processedFile.name}`));
+        }),
+        metadataPromise,
+      ]);
+    } catch (error) {
+      URL.revokeObjectURL(objectUrl);
+      throw error;
+    }
 
-    photo.thumbnail = thumbnail(photo, 300, 250);
+    const metadata = await metadataPromise;
+    photo.metadata = new ExifMetadata(metadata);
+    photo.imageBase64 = '';
+    photo.thumbnail = objectUrl;
     return photo;
   }
 

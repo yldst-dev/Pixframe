@@ -3,7 +3,6 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 const startTime = Date.now()
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
-  // Optional secret authentication
   const expectedSecret = process.env.HEALTH_SECRET
   const providedSecret = req.query.secret as string | undefined
 
@@ -17,7 +16,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     status: 'ok',
     service: 'pixframe-web',
     uptime: Math.floor(uptimeMs / 1000),
-    version: process.env.npm_package_version || '2.0.2',
+    version: process.env.npm_package_version || '2.1.0',
     timestamp: new Date().toISOString()
   })
 }

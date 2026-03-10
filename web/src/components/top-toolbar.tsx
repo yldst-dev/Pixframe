@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useStore } from '../store';
 import DownloadIcon from '../icons/download.icon';
 import GitHubIcon from '../icons/github.icon';
+import PfLoader from './ui/pf-loader';
 import themes, { useThemeStore } from '../themes';
 import render from '../core/drawing/render';
 import Button from './ui/button';
@@ -141,7 +142,6 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
                 <div className="flex items-center space-x-2">
                     <img src="/logo.png" alt="PixFrame" className="w-8 h-8" />
                     <h1 className="text-xl font-bold tracking-tight uppercase">PixFrame</h1>
-                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-primary text-primary-foreground uppercase tracking-wider">BETA</span>
                 </div>
             </div>
 
@@ -181,15 +181,10 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
 
             {showDownloadModal && (
                 <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center">
-                    <div className="bg-card border border-border p-8 max-w-sm w-full shadow-2xl">
-                        <h3 className="text-lg font-bold mb-4 uppercase tracking-tight">{t('download.preparing', 'Preparing Download...')}</h3>
-                        <div className="w-full bg-secondary h-2 mb-4 overflow-hidden">
-                            <div 
-                                className="bg-primary h-full transition-all duration-300 ease-out"
-                                style={{ width: `${(downloadProgress.current / downloadProgress.total) * 100}%` }}
-                            />
-                        </div>
-                        <p className="text-sm text-muted-foreground font-mono text-right">
+                    <div className="bg-card border border-border p-8 max-w-sm w-full shadow-2xl flex flex-col items-center">
+                        <PfLoader className="w-10 h-10 text-primary mb-4" />
+                        <h3 className="text-lg font-bold mb-2 uppercase tracking-tight">{t('download.preparing', 'Preparing Download...')}</h3>
+                        <p className="text-sm text-muted-foreground font-mono">
                             {downloadProgress.current} / {downloadProgress.total}
                         </p>
                     </div>

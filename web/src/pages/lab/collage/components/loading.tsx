@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store';
+import PfLoader from '../../../../components/ui/pf-loader';
 
 const Loading = () => {
   const { t } = useTranslation();
@@ -27,7 +28,7 @@ const Loading = () => {
         }
       >
         <div className="flex justify-center mb-6 text-primary">
-          <div className="pf-square-loader" />
+          <PfLoader />
         </div>
 
         <div className="text-center space-y-2">

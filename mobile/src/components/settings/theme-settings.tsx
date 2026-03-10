@@ -159,7 +159,16 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isMobile = false }) => {
                 setRerenderOptions();
               }}
             >
-              {themeDarkMode ? <CgMoon size={18} /> : <CgSun size={18} />}
+              <span className="relative block h-[18px] w-[18px]">
+                <CgSun
+                  size={18}
+                  className={`absolute inset-0 transition-[opacity,transform] duration-200 ease-out ${themeDarkMode ? 'opacity-0 scale-90 -translate-y-0.5' : 'opacity-100 scale-100 translate-y-0'}`}
+                />
+                <CgMoon
+                  size={18}
+                  className={`absolute inset-0 transition-[opacity,transform] duration-200 ease-out ${themeDarkMode ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-0.5'}`}
+                />
+              </span>
             </IconButton>
           </div>
           

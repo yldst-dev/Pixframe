@@ -95,21 +95,13 @@ const DropZone = () => {
         onClick={handleFileSelect}
       >
         <div className={`
-          p-4 rounded-full transition-colors
-          ${isDragOver 
-            ? 'bg-blue-100 dark:bg-blue-900/20' 
-            : 'bg-gray-100 dark:bg-gray-800'
+          transition-colors
+          ${isDragOver
+            ? 'text-blue-600 dark:text-blue-400'
+            : 'text-gray-400 dark:text-gray-500'
           }
         `}>
-          <div className={`
-            transition-colors
-            ${isDragOver 
-              ? 'text-blue-600 dark:text-blue-400' 
-              : 'text-gray-400 dark:text-gray-500'
-            }
-          `}>
-            <ImageIcon size={48} />
-          </div>
+          <ImageIcon size={48} />
         </div>
 
         <div className="text-center space-y-2">

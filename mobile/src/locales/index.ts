@@ -5,6 +5,7 @@ import ja from './translations/ja.json';
 import zh_CN from './translations/zh-CN.json';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { SafeStorage } from '../utils/safe-storage';
 
 const supportLanguages = ['en', 'ja', 'ko', 'zh-CN'];
 
@@ -15,7 +16,7 @@ i18n
   .use(initReactI18next)
   .init({
     fallbackLng: 'en',
-    lng: localStorage.getItem('language') || undefined,
+    lng: SafeStorage.getItem('language', '') || undefined,
     supportedLngs: supportLanguages,
     debug: false,
     resources: {

@@ -56,11 +56,6 @@ Thumbs.db
 coverage/
 .nyc_output/
 
-# Capacitor (Mobile)
-android/
-ios/
-capacitor.config.json
-
 # Vercel
 .vercel/
 

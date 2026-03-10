@@ -1,19 +1,59 @@
-import { Preloader } from 'konsta/react';
-import { useStore } from '../../../store';
 import { useTranslation } from 'react-i18next';
+import { useStore } from '../../../store';
+import PfLoader from '../../../components/ui/pf-loader';
 
 const Loading = () => {
   const { t } = useTranslation();
-  const { loading } = useStore();
+  const { loading, loadingProgress } = useStore();
 
-  if (!loading) return null;
+  const { current, total, currentFileName } = loadingProgress;
+  const safeTotal = total > 0 ? total : 0;
+  const safeCurrent = safeTotal > 0 ? Math.min(Math.max(current, 0), safeTotal) : 0;
+  const hasProgress = safeTotal > 0;
 
   return (
-    <div className="fixed top-0 left-0 z-50 w-screen h-screen bg-gray-900 bg-opacity-50 flex justify-center items-center">
-      <div className="flex flex-col items-center">
-        <Preloader className="k-color-brand-white" />
-        <span className="ml-2 text-white text-sm">{t('root.processing')}</span>
-        <span className="ml-2 text-white text-xs opacity-75 mt-1">{t('root.heif-processing', 'HEIC/HEIF 파일은 변환 시간이 더 걸릴 수 있습니다')}</span>
+    <div
+      aria-hidden={!loading}
+      className={
+        `fixed inset-0 z-[200] flex items-center justify-center ` +
+        `transition-opacity duration-200 ease-out ` +
+        (loading ? 'opacity-100 pointer-events-auto bg-background/75 backdrop-blur-md' : 'opacity-0 pointer-events-none')
+      }
+    >
+      <div
+        className={
+          `bg-card border border-border shadow-2xl p-8 max-w-xs w-full ` +
+          `transition-all duration-200 ease-out ` +
+          (loading ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-1 scale-95')
+        }
+      >
+        <div className="flex justify-center mb-6 text-primary">
+          <PfLoader />
+        </div>
+
+        <div className="text-center space-y-2">
+          <h3 className="text-base font-bold uppercase tracking-tight">
+            {t('root.processing', '처리 중...')}
+          </h3>
+
+          {hasProgress ? (
+            <p className="text-sm font-mono text-muted-foreground">
+              {safeCurrent} / {safeTotal}
+            </p>
+          ) : (
+            <p className="text-sm font-mono text-muted-foreground">...</p>
+          )}
+
+          {currentFileName ? (
+            <p className="text-xs text-muted-foreground/70 truncate max-w-full px-2">
+              {currentFileName}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground/70">
+              {t('root.heif-processing', 'HEIC/HEIF 파일은 변환 시간이 더 걸릴 수 있습니다')}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

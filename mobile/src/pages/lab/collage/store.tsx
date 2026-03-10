@@ -1,5 +1,18 @@
 import { create } from 'zustand';
 import Photo from '../../../core/photo';
+import { SafeStorage } from '../../../utils/safe-storage';
+
+type LoadingProgress = {
+  current: number;
+  total: number;
+  currentFileName: string;
+};
+
+const DEFAULT_LOADING_PROGRESS: LoadingProgress = {
+  current: 0,
+  total: 0,
+  currentFileName: '',
+};
 
 type Store = {
   photos: Photo[];
@@ -7,6 +20,9 @@ type Store = {
 
   loading: boolean;
   setLoading: (loading: boolean) => void;
+  loadingProgress: LoadingProgress;
+  setLoadingProgress: (loadingProgress: LoadingProgress | number) => void;
+  resetLoadingProgress: () => void;
 
   backgroundColor: string;
   setBackgroundColor: (backgroundColor: string) => void;
@@ -41,59 +57,72 @@ export const useStore = create<Store>((set) => ({
   setPhotos: (photos) => set({ photos }),
 
   loading: false,
-  setLoading: (loading) => set({ loading }),
+  setLoading: (loading) => set({ loading, loadingProgress: DEFAULT_LOADING_PROGRESS }),
+  loadingProgress: DEFAULT_LOADING_PROGRESS,
+  setLoadingProgress: (loadingProgress) =>
+    set({
+      loadingProgress:
+        typeof loadingProgress === 'number'
+          ? {
+              current: Math.min(100, Math.max(0, Math.round(loadingProgress))),
+              total: 100,
+              currentFileName: '',
+            }
+          : loadingProgress,
+    }),
+  resetLoadingProgress: () => set({ loadingProgress: DEFAULT_LOADING_PROGRESS }),
 
-  backgroundColor: localStorage.getItem('lab:backgroundColor') || '#ffffff',
+  backgroundColor: SafeStorage.getItem('lab:backgroundColor', '#ffffff'),
   setBackgroundColor: (backgroundColor) => {
-    localStorage.setItem('lab:backgroundColor', backgroundColor);
+    SafeStorage.setItem('lab:backgroundColor', backgroundColor);
     set({ backgroundColor });
   },
 
-  ratio: localStorage.getItem('lab:ratio') || '4:5',
+  ratio: SafeStorage.getItem('lab:ratio', '4:5'),
   setRatio: (ratio) => {
-    localStorage.setItem('lab:ratio', ratio);
+    SafeStorage.setItem('lab:ratio', ratio);
     set({ ratio });
   },
 
-  numberOfRow: localStorage.getItem('lab:numberOfRow') ? Number(localStorage.getItem('lab:numberOfRow')) : 2,
+  numberOfRow: SafeStorage.getIntItem('lab:numberOfRow', 2),
   setNumberOfRow: (numberOfRow) => {
-    localStorage.setItem('lab:numberOfRow', String(numberOfRow));
+    SafeStorage.setNumberItem('lab:numberOfRow', numberOfRow);
     set({ numberOfRow });
   },
 
-  numberOfColumn: localStorage.getItem('lab:numberOfColumn') ? Number(localStorage.getItem('lab:numberOfColumn')) : 2,
+  numberOfColumn: SafeStorage.getIntItem('lab:numberOfColumn', 2),
   setNumberOfColumn: (numberOfColumn) => {
-    localStorage.setItem('lab:numberOfColumn', String(numberOfColumn));
+    SafeStorage.setNumberItem('lab:numberOfColumn', numberOfColumn);
     set({ numberOfColumn });
   },
 
-  paddingTop: localStorage.getItem('lab:paddingTop') ? Number(localStorage.getItem('lab:paddingTop')) : 50,
+  paddingTop: SafeStorage.getNumberItem('lab:paddingTop', 50),
   setPaddingTop: (paddingTop) => {
-    localStorage.setItem('lab:paddingTop', String(paddingTop));
+    SafeStorage.setNumberItem('lab:paddingTop', paddingTop);
     set({ paddingTop });
   },
 
-  paddingBottom: localStorage.getItem('lab:paddingBottom') ? Number(localStorage.getItem('lab:paddingBottom')) : 50,
+  paddingBottom: SafeStorage.getNumberItem('lab:paddingBottom', 50),
   setPaddingBottom: (paddingBottom) => {
-    localStorage.setItem('lab:paddingBottom', String(paddingBottom));
+    SafeStorage.setNumberItem('lab:paddingBottom', paddingBottom);
     set({ paddingBottom });
   },
 
-  paddingLeft: localStorage.getItem('lab:paddingLeft') ? Number(localStorage.getItem('lab:paddingLeft')) : 50,
+  paddingLeft: SafeStorage.getNumberItem('lab:paddingLeft', 50),
   setPaddingLeft: (paddingLeft) => {
-    localStorage.setItem('lab:paddingLeft', String(paddingLeft));
+    SafeStorage.setNumberItem('lab:paddingLeft', paddingLeft);
     set({ paddingLeft });
   },
 
-  paddingRight: localStorage.getItem('lab:paddingRight') ? Number(localStorage.getItem('lab:paddingRight')) : 50,
+  paddingRight: SafeStorage.getNumberItem('lab:paddingRight', 50),
   setPaddingRight: (paddingRight) => {
-    localStorage.setItem('lab:paddingRight', String(paddingRight));
+    SafeStorage.setNumberItem('lab:paddingRight', paddingRight);
     set({ paddingRight });
   },
 
-  marginEach: localStorage.getItem('lab:marginEach') ? Number(localStorage.getItem('lab:marginEach')) : 50,
+  marginEach: SafeStorage.getNumberItem('lab:marginEach', 50),
   setMarginEach: (marginEach) => {
-    localStorage.setItem('lab:marginEach', String(marginEach));
+    SafeStorage.setNumberItem('lab:marginEach', marginEach);
     set({ marginEach });
   },
 }));

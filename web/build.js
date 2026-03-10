@@ -12,6 +12,6 @@ writeFileSync(
   'dist/version.json',
   JSON.stringify({
     version,
-    url: `https://exif-frame.yuru.cam/${bundleId}.zip`,
+    url: `https://exif-frame.yldst.cam/${bundleId}.zip`,
   })
 );

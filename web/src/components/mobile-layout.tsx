@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useStore } from '../store';
 import themes, { useThemeStore } from '../themes';
 import SettingsPanel from './settings-panel';
+import PfLoader from './ui/pf-loader';
 import ImagePreview from './settings/image-preview';
 import Loading from '../pages/convert/components/loading';
 import AddPhotoErrorDialog from '../pages/convert/components/add-photo-error.dialog';
@@ -410,15 +411,10 @@ const MobileLayout = () => {
       {/* Download Progress Modal */}
       {showDownloadModal && (
           <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-              <div className="bg-card border border-border p-8 max-w-sm w-full shadow-2xl">
-                  <h3 className="text-lg font-bold mb-4 uppercase tracking-tight">{t('download.preparing', 'Preparing Download...')}</h3>
-                  <div className="w-full bg-secondary h-2 mb-4 overflow-hidden">
-                      <div 
-                          className="bg-primary h-full transition-all duration-300 ease-out"
-                          style={{ width: `${(downloadProgress.current / downloadProgress.total) * 100}%` }}
-                      />
-                  </div>
-                  <p className="text-sm text-muted-foreground font-mono text-right">
+              <div className="bg-card border border-border p-8 max-w-sm w-full shadow-2xl flex flex-col items-center">
+                  <PfLoader className="w-10 h-10 text-primary mb-4" />
+                  <h3 className="text-lg font-bold mb-2 uppercase tracking-tight">{t('download.preparing', 'Preparing Download...')}</h3>
+                  <p className="text-sm text-muted-foreground font-mono">
                       {downloadProgress.current} / {downloadProgress.total}
                   </p>
               </div>

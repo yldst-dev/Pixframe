@@ -120,9 +120,19 @@
   * {
     @apply border-border;
   }
+  html {
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+  }
   body {
     @apply bg-background text-foreground;
     font-family: 'IBM Plex Sans KR', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+    position: fixed;
+    overscroll-behavior: none;
   }
 }
 
@@ -136,37 +146,104 @@
   transition: background-color 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out;
 }
 
-/* Pixframe loading indicator: two squares that swap/fill */
-.pf-square-loader {
-  display: inline-flex;
-  gap: 5px;
+/* Pixframe loading indicator: origami fold */
+.pf-loader {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  perspective: 200px;
 }
 
-.pf-square-loader::before,
-.pf-square-loader::after {
-  content: '';
-  width: 25px;
-  aspect-ratio: 1;
-  box-shadow: 0 0 0 3px inset currentColor;
-  animation: pf-square-loader 1.5s infinite;
+.pf-loader .pf-face {
+  position: absolute;
+  width: 50%;
+  height: 50%;
+  backface-visibility: visible;
+  background: currentColor;
 }
 
-.pf-square-loader::after {
-  --s: -1;
+.pf-loader .pf-face:nth-child(1) {
+  top: 0;
+  left: 0;
+  transform-origin: right bottom;
+  animation: pf-fold-tl 2s ease-in-out infinite;
 }
 
-@keyframes pf-square-loader {
+.pf-loader .pf-face:nth-child(2) {
+  top: 0;
+  right: 0;
+  opacity: 0.75;
+  transform-origin: left bottom;
+  animation: pf-fold-tr 2s ease-in-out infinite;
+}
+
+.pf-loader .pf-face:nth-child(3) {
+  bottom: 0;
+  left: 0;
+  opacity: 0.5;
+  transform-origin: right top;
+  animation: pf-fold-bl 2s ease-in-out infinite;
+}
+
+.pf-loader .pf-face:nth-child(4) {
+  bottom: 0;
+  right: 0;
+  opacity: 0.3;
+  transform-origin: left top;
+  animation: pf-fold-br 2s ease-in-out infinite;
+}
+
+@keyframes pf-fold-tl {
+  0%, 100% { transform: rotateX(0deg) rotateY(0deg); }
+  30%, 60% { transform: rotateX(-180deg) rotateY(0deg); }
+}
+
+@keyframes pf-fold-tr {
+  0%, 100% { transform: rotateX(0deg) rotateY(0deg); }
+  35%, 65% { transform: rotateX(0deg) rotateY(180deg); }
+}
+
+@keyframes pf-fold-bl {
+  0%, 100% { transform: rotateX(0deg) rotateY(0deg); }
+  40%, 70% { transform: rotateX(0deg) rotateY(-180deg); }
+}
+
+@keyframes pf-fold-br {
+  0%, 100% { transform: rotateX(0deg) rotateY(0deg); }
+  45%, 75% { transform: rotateX(180deg) rotateY(0deg); }
+}
+
+/* Download success animation */
+@keyframes pf-success-pop {
   0% {
-    transform: scaleX(var(--s, 1)) translate(0) scale(1);
+    transform: scale(0) rotate(-45deg);
+    opacity: 0;
   }
-  33% {
-    transform: scaleX(var(--s, 1)) translate(calc(50% + 2.5px)) scale(1);
+  50% {
+    transform: scale(1.35) rotate(0deg);
+    opacity: 1;
   }
-  66% {
-    transform: scaleX(var(--s, 1)) translate(calc(50% + 2.5px)) scale(2);
+  70% {
+    transform: scale(0.9);
+  }
+  85% {
+    transform: scale(1.1);
   }
   100% {
-    transform: scaleX(var(--s, 1)) translate(0) scale(1);
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pf-success-bg {
+  0% {
+    background-color: transparent;
+  }
+  15% {
+    background-color: hsl(142 76% 46% / 0.2);
+  }
+  100% {
+    background-color: transparent;
   }
 }
 

@@ -1,5 +1,5 @@
 {
-  "version": "2.0.2",
+  "version": "2.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,7 @@
     "@capacitor/core": "^5.7.4",
     "@capacitor/splash-screen": "^5.0.7",
     "@capgo/capacitor-updater": "^5.9.0",
+    "@fontsource/barlow": "^5.2.8",
     "@jsquash/webp": "^1.4.0",
     "@vercel/analytics": "^1.5.0",
     "autoprefixer": "10.4.19",

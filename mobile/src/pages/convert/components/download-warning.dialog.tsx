@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Capacitor } from '@capacitor/core';
 import Button from '../../../components/ui/button';
 
 interface DownloadWarningDialogProps {
@@ -10,6 +11,7 @@ interface DownloadWarningDialogProps {
 
 const DownloadWarningDialog: React.FC<DownloadWarningDialogProps> = ({ open, onClose, onConfirm }) => {
   const { t } = useTranslation();
+  const isNative = Capacitor.isNativePlatform();
 
   if (!open) return null;
 
@@ -21,7 +23,9 @@ const DownloadWarningDialog: React.FC<DownloadWarningDialogProps> = ({ open, onC
         </h3>
         
         <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-          {t('mobile.download.desc', 'Due to security restrictions on mobile devices, individual image downloads are limited. Your photos will be saved as a ZIP archive.')}
+          {isNative
+            ? t('mobile.download.desc.native', 'In the app, exported images are saved directly to your photo library.')
+            : t('mobile.download.desc', 'Due to security restrictions on mobile devices, individual image downloads are limited. Your photos will be saved as a ZIP archive.')}
         </p>
 
         <div className="flex justify-end space-x-3">

@@ -2,38 +2,111 @@ import { Media } from '@capacitor-community/media';
 import { Capacitor } from '@capacitor/core';
 import saveAs from 'file-saver';
 
-/**
- * Download base64 data as a file.
- */
-export default async function download(filename: string, data: string): Promise<void> {
-  // Create an album if it doesn't exist on native platforms. (Android, iOS)
-  if (Capacitor.isNativePlatform()) {
-    const { albums } = await Media.getAlbums();
-    if (!albums.map((album) => album.name).includes('EXIF Frame')) {
-      await Media.createAlbum({ name: 'EXIF Frame' });
+const ALBUM_NAME = 'EXIF Frame';
+let albumIdentifierCache: string | null = null;
+let androidLastStamp = 0;
+let androidStampSequence = 0;
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function resolveAlbumIdentifier(): Promise<string | undefined> {
+  if (Capacitor.getPlatform() !== 'android') {
+    return undefined;
+  }
+
+  if (albumIdentifierCache !== null) {
+    return albumIdentifierCache === '' ? undefined : albumIdentifierCache;
+  }
+
+  const { albums } = await Media.getAlbums();
+  const existing = albums.find((album) => album.name === ALBUM_NAME);
+
+  if (existing?.identifier) {
+    albumIdentifierCache = existing.identifier;
+    return existing.identifier;
+  }
+
+  try {
+    await Media.createAlbum({ name: ALBUM_NAME });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.toLowerCase().includes('already exists')) {
+      throw error;
+    }
+  }
+  const refreshed = await Media.getAlbums();
+  const created = refreshed.albums.find((album) => album.name === ALBUM_NAME);
+
+  if (created?.identifier) {
+    albumIdentifierCache = created.identifier;
+    return created.identifier;
+  }
+
+  const { path } = await Media.getAlbumsPath();
+  const normalized = path.endsWith('/') ? path.slice(0, -1) : path;
+  const fallback = `${normalized}/${ALBUM_NAME}`;
+  albumIdentifierCache = fallback;
+  return fallback;
+}
+
+function resolveNativeFilename(filename: string): string {
+  if (Capacitor.getPlatform() === 'android') {
+    const extensionIndex = filename.lastIndexOf('.');
+    const baseName = extensionIndex > 0 ? filename.slice(0, extensionIndex) : filename;
+    const normalizedBaseName = baseName
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 40) || 'image';
+    const now = Date.now();
+    if (now === androidLastStamp) {
+      androidStampSequence += 1;
+    } else {
+      androidLastStamp = now;
+      androidStampSequence = 0;
+    }
+    const sequence = String(androidStampSequence).padStart(3, '0');
+    return `pixframe_${now}${sequence}_${normalizedBaseName}`;
+  }
+
+  return filename;
+}
+
+async function saveNativePhoto(filename: string, data: string): Promise<void> {
+  const platform = Capacitor.getPlatform();
+  const albumIdentifier = platform === 'android' ? await resolveAlbumIdentifier() : undefined;
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      if (platform === 'android') {
+        await Media.savePhoto({
+          fileName: resolveNativeFilename(filename),
+          path: data,
+          albumIdentifier,
+        });
+      } else {
+        await Media.savePhoto({
+          path: data,
+        });
+      }
+      return;
+    } catch (error) {
+      lastError = error;
+      await sleep(150 * (attempt + 1));
     }
   }
 
-  // Save the file based on the platform.
-  switch (Capacitor.getPlatform()) {
-    case 'ios':
-      await Media.savePhoto({
-        fileName: filename,
-        path: data,
-        albumIdentifier: (await Media.getAlbums()).albums.find((album) => album.name === 'EXIF Frame')?.identifier,
-      });
-      break;
+  throw lastError instanceof Error ? lastError : new Error('Failed to save photo to native gallery');
+}
 
-    case 'android':
-      await Media.savePhoto({
-        fileName: Math.random().toString(36).substring(7) + '_' + filename,
-        path: data,
-        albumIdentifier: (await Media.getAlbums()).albums.find((album) => album.name === 'EXIF Frame')?.identifier,
-      });
-      break;
-
-    case 'web':
-      saveAs(data, filename);
-      break;
+export default async function download(filename: string, data: string): Promise<void> {
+  if (!Capacitor.isNativePlatform()) {
+    saveAs(data, filename);
+    return;
   }
+
+  await saveNativePhoto(filename, data);
 }
