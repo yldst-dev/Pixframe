@@ -2,9 +2,10 @@ import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store';
 import ImageIcon from '../icons/image.icon';
-import AddIcon from '../icons/add.icon';
 import Button from './ui/button';
 import Photo from '../core/photo';
+import { openPhotoLibrary, openFileBrowser } from '../utils/image-file-picker';
+import { IoImagesOutline, IoFolderOpenOutline } from 'react-icons/io5';
 
 const DropZone = () => {
   const { t } = useTranslation();
@@ -46,18 +47,28 @@ const DropZone = () => {
     }
   }, [handleAddPhotos]);
 
-  const handleFileSelect = useCallback(() => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.multiple = true;
-    input.accept = 'image/*';
-    input.onchange = (e) => {
-      const files = (e.target as HTMLInputElement).files;
-      if (files) {
-        handleAddPhotos(Array.from(files));
-      }
-    };
-    input.click();
+  const handlePhotoLibraryClick = useCallback(() => {
+    void openPhotoLibrary()
+      .then((files) => {
+        if (files.length > 0) {
+          handleAddPhotos(files);
+        }
+      })
+      .catch((error) => {
+        console.error('Photo library picker error:', error instanceof Error ? error.message : 'Unknown error');
+      });
+  }, [handleAddPhotos]);
+
+  const handleFileBrowserClick = useCallback(() => {
+    void openFileBrowser()
+      .then((files) => {
+        if (files.length > 0) {
+          handleAddPhotos(files);
+        }
+      })
+      .catch((error) => {
+        console.error('File browser error:', error instanceof Error ? error.message : 'Unknown error');
+      });
   }, [handleAddPhotos]);
 
   return (
@@ -69,13 +80,12 @@ const DropZone = () => {
         className={`
           w-full max-w-2xl h-96 border-2 border-dashed rounded-xl
           flex flex-col items-center justify-center space-y-6
-          transition-all duration-200 cursor-pointer
+          transition-all duration-200
           ${isDragOver 
             ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/10 dark:border-blue-500' 
             : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50'
           }
         `}
-        onClick={handleFileSelect}
       >
         <div className={`
           p-4 rounded-full transition-colors
@@ -110,16 +120,28 @@ const DropZone = () => {
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleFileSelect();
-          }}
-        >
-          <AddIcon size={16} />
-          <span className="ml-2">{t('dropzone.browse', 'Browse Files')}</span>
-        </Button>
+        <div className="flex flex-col gap-2 w-full max-w-xs">
+          <Button
+            variant="primary"
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePhotoLibraryClick();
+            }}
+          >
+            <IoImagesOutline size={16} />
+            <span className="ml-2">{t('picker.photo-library', 'Photo Library')}</span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleFileBrowserClick();
+            }}
+          >
+            <IoFolderOpenOutline size={16} />
+            <span className="ml-2">{t('picker.browse-files', 'Browse Files')}</span>
+          </Button>
+        </div>
 
         <div className="text-xs text-gray-400 dark:text-gray-500">
           {t('dropzone.formats', 'Supports: JPG, PNG, HEIC, and more')}

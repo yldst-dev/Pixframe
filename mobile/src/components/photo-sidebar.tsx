@@ -1,9 +1,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store';
-import AddIcon from '../icons/add.icon';
 import Photo from '../core/photo';
 import Button from './ui/button';
+import { openPhotoLibrary, openFileBrowser } from '../utils/image-file-picker';
+import { IoImagesOutline, IoFolderOpenOutline } from 'react-icons/io5';
 
 interface PhotoSidebarProps {
   selectedIndex: number | null;
@@ -15,7 +16,7 @@ const PhotoSidebar: React.FC<PhotoSidebarProps> = ({ selectedIndex, onSelectPhot
   const { t } = useTranslation();
   const { photos, setPhotos, setLoading, setOpenedAddPhotoErrorDialog, clearAllPhotos } = useStore();
 
-  const handleAddPhotos = async (files: FileList) => {
+  const handleAddPhotos = async (files: FileList | File[]) => {
     setLoading(true);
     try {
       const newPhotos = await Promise.all(Array.from(files).map(Photo.create));
@@ -40,18 +41,28 @@ const PhotoSidebar: React.FC<PhotoSidebarProps> = ({ selectedIndex, onSelectPhot
     }
   };
 
-  const handleFileInputClick = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.multiple = true;
-    input.accept = 'image/*';
-    input.onchange = (e) => {
-      const files = (e.target as HTMLInputElement).files;
-      if (files) {
-        handleAddPhotos(files);
-      }
-    };
-    input.click();
+  const handlePhotoLibraryClick = () => {
+    void openPhotoLibrary()
+      .then((files) => {
+        if (files.length > 0) {
+          handleAddPhotos(files);
+        }
+      })
+      .catch((error) => {
+        console.error('Photo library picker error:', error instanceof Error ? error.message : 'Unknown error');
+      });
+  };
+
+  const handleFileBrowserClick = () => {
+    void openFileBrowser()
+      .then((files) => {
+        if (files.length > 0) {
+          handleAddPhotos(files);
+        }
+      })
+      .catch((error) => {
+        console.error('File browser error:', error instanceof Error ? error.message : 'Unknown error');
+      });
   };
 
   return (
@@ -74,15 +85,23 @@ const PhotoSidebar: React.FC<PhotoSidebarProps> = ({ selectedIndex, onSelectPhot
         )}
       </div>
 
-      {/* Add Photos Button */}
-      <div className="p-4 border-b border-border shrink-0">
+      {/* Add Photos Buttons */}
+      <div className="p-4 border-b border-border shrink-0 flex flex-col gap-2">
         <Button
           variant="primary"
           className="w-full uppercase text-xs font-bold tracking-wide"
-          onClick={handleFileInputClick}
+          onClick={handlePhotoLibraryClick}
         >
-          <AddIcon size={16} />
-          <span className="ml-2">{t('toolbar.add-photos', 'ADD PHOTOS')}</span>
+          <IoImagesOutline size={16} />
+          <span className="ml-2">{t('picker.photo-library', 'Photo Library')}</span>
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full uppercase text-xs font-bold tracking-wide"
+          onClick={handleFileBrowserClick}
+        >
+          <IoFolderOpenOutline size={16} />
+          <span className="ml-2">{t('picker.browse-files', 'Browse Files')}</span>
         </Button>
       </div>
 

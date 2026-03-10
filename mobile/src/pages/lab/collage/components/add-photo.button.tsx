@@ -1,10 +1,11 @@
-import { ChangeEvent } from 'react';
+import React, { useCallback } from 'react';
 import { ListButton } from 'konsta/react';
 import { useTranslation } from 'react-i18next';
 import Photo from '../../../../core/photo';
-import AddIcon from '../../../../icons/add.icon';
+import { IoImagesOutline, IoFolderOpenOutline } from 'react-icons/io5';
 import { useStore } from '../store';
 import * as Root from '../../../../store';
+import { openPhotoLibrary, openFileBrowser } from '../../../../utils/image-file-picker';
 
 const AddPhotoButton = () => {
   const { t } = useTranslation();
@@ -43,41 +44,52 @@ const AddPhotoButton = () => {
     setLoading(false);
   };
 
-  const onChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    const { files } = event.target;
-    if (!files) return;
-    try {
-      await Promise.all(Array.from(files).map(Photo.create)).then((newPhotos) => {
+  const handleAddPhotos = useCallback(
+    async (files: File[]) => {
+      if (files.length === 0) return;
+      setLoading(true);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      try {
+        const newPhotos = await Promise.all(files.map(Photo.create));
         setPhotos([...photos, ...newPhotos]);
+      } catch (e) {
+        console.error(e);
+        setOpenedAddPhotoErrorDialog(true);
+      }
+      setLoading(false);
+    },
+    [photos, setPhotos, setLoading, setOpenedAddPhotoErrorDialog],
+  );
+
+  const handlePhotoLibraryClick = useCallback(() => {
+    void openPhotoLibrary()
+      .then((files) => handleAddPhotos(files))
+      .catch((error) => {
+        console.error('Photo library picker error:', error instanceof Error ? error.message : 'Unknown error');
       });
-    } catch (e) {
-      console.error(e);
-      setOpenedAddPhotoErrorDialog(true);
-    }
-    setLoading(false);
-  };
+  }, [handleAddPhotos]);
+
+  const handleFileBrowserClick = useCallback(() => {
+    void openFileBrowser()
+      .then((files) => handleAddPhotos(files))
+      .catch((error) => {
+        console.error('File browser error:', error instanceof Error ? error.message : 'Unknown error');
+      });
+  }, [handleAddPhotos]);
 
   return (
-    <>
-      <input type="file" accept="image/*" onChange={onChange} onClick={(e) => (e.currentTarget.value = '')} multiple hidden />
-
-      <ListButton
-        onDragEnter={onDragEnter}
-        onDragLeave={onDragLeave}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
-        onClick={() => {
-          const input: HTMLInputElement | null = document.querySelector('input[type="file"]');
-          if (input) input.click();
-        }}
-      >
-        <AddIcon size={18} />
+    <div onDragEnter={onDragEnter} onDragLeave={onDragLeave} onDragOver={onDragOver} onDrop={onDrop}>
+      <ListButton onClick={handlePhotoLibraryClick}>
+        <IoImagesOutline size={18} />
         <div style={{ width: 4 }} />
-        {t('root.add-photo')}
+        {t('picker.photo-library', 'Photo Library')}
       </ListButton>
-    </>
+      <ListButton onClick={handleFileBrowserClick}>
+        <IoFolderOpenOutline size={18} />
+        <div style={{ width: 4 }} />
+        {t('picker.browse-files', 'Browse Files')}
+      </ListButton>
+    </div>
   );
 };
 

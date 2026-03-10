@@ -89,12 +89,16 @@
   "privacy-policy": "隐私政策",
   "term-and-conditions": "条款和条件",
   "lab": "实验室",
+  "mobile.download.desc.native": "在应用中，导出的图片会直接保存到你的照片库。",
 
   "lab.description": "实验功能可能随时出现和消失。",
+  "preview.download-complete": "下载完成",
   "lab.collage": "拼贴画",
   "lab.collage-description": "用多张照片创建拼贴画。",
   "lab.collage-options": "您可以设置各部分的边距和照片之间的间距。",
 
   "fail-to-load-photos": "无法加载照片。",
-  "please-check-your-photo-extension": "请检查您的照片文件扩展名。"
+  "please-check-your-photo-extension": "请检查您的照片文件扩展名。",
+  "picker.photo-library": "照片图库",
+  "picker.browse-files": "浏览文件"
 }

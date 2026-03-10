@@ -167,6 +167,7 @@
   "download.batch-title": "일괄 다운로드 중",
   "download.photos": "사진",
   "preview.download-single": "이 사진 다운로드",
+  "preview.download-complete": "다운로드 완료",
   "preview.generating": "생성 중",
   "preview.select-image": "사진 선택",
   "preview.select-description": "사이드바에서 사진을 선택하여 미리보기를 확인하세요",
@@ -222,12 +223,13 @@
   "mobile.not-supported.title": "모바일 환경 미지원",
   "mobile.not-supported.description": "죄송합니다. 현재 모바일 환경은 지원되지 않습니다. 더 나은 사용자 경험을 위해 데스크톱 환경에서 이용해 주세요.",
   "mobile.alternative.description": "모바일에서는 원본 프로젝트를 이용해 주세요:",
-  "mobile.visit-original": "exif-frame.yuru.cam",
+  "mobile.visit-original": "exif-frame.yldst.cam",
   "mobile.desktop-instruction": "데스크톱에서 이용하시려면 PC나 노트북으로 다시 접속해 주세요.",
   "mobile.empty.title": "사진 추가",
   "mobile.empty.desc": "아래 버튼을 눌러 시작하세요",
   "mobile.download.title": "다운로드 알림",
   "mobile.download.desc": "모바일 환경 보안상 이미지 개별 다운로드가 제한되어 있습니다. 따라서 압축파일(ZIP)로 저장됩니다.",
+  "mobile.download.desc.native": "앱에서는 내보낸 이미지가 사진 앱(갤러리)에 직접 저장됩니다.",
   "download.preparing": "다운로드 준비 중...",
   "error.download_failed": "다운로드에 실패했습니다. 다시 시도해주세요.",
   "common.cancel": "취소",
@@ -235,5 +237,7 @@
   "common.delete": "삭제",
   "confirm.delete_all": "모든 사진을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
   "confirm.delete_all.title": "전체 사진 삭제",
-  "delete.all": "전체 삭제"
+  "delete.all": "전체 삭제",
+  "picker.photo-library": "사진 보관함",
+  "picker.browse-files": "파일 선택"
 }
