@@ -62,7 +62,8 @@ jobs:
           tmp="$(mktemp -d ios/build/ipa.XXXXXX)"
           mkdir -p "$tmp/Payload"
           cp -R ios/build/Build/Products/Release-iphoneos/App.app "$tmp/Payload/App.app"
-          ditto -c -k --sequesterRsrc --keepParent "$tmp/Payload" "$GITHUB_WORKSPACE/Pixframe-altstore.ipa"
+          cd "$tmp"
+          zip -qry "$GITHUB_WORKSPACE/Pixframe-altstore.ipa" Payload
       - uses: actions/upload-artifact@v4
         with:
           name: ios-altstore-release
