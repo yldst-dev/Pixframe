@@ -1,6 +1,6 @@
 {
   "name": "pixframe",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "<p align=\"center\">   <img src=\"https://raw.githubusercontent.com/yldst-dev/Pixframe/refs/heads/main/preview%20image.jpg\" alt=\"Preview image\" width=\"600\"> </p>",
   "main": "index.js",
   "scripts": {

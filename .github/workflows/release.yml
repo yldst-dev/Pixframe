@@ -64,6 +64,7 @@ jobs:
           cp -R ios/build/Build/Products/Release-iphoneos/App.app "$tmp/Payload/App.app"
           cd "$tmp"
           zip -qry "$GITHUB_WORKSPACE/Pixframe-altstore.ipa" Payload
+        working-directory: mobile
       - uses: actions/upload-artifact@v4
         with:
           name: ios-altstore-release
