@@ -1,23 +1,43 @@
 apply plugin: 'com.android.application'
 
+def versionCodeValue = Integer.parseInt((project.findProperty('PIXFRAME_VERSION_CODE') ?: '1').toString())
+def versionNameValue = (project.findProperty('PIXFRAME_VERSION_NAME') ?: '1.0').toString()
+def hasReleaseSigning = [
+    'PIXFRAME_UPLOAD_STORE_FILE',
+    'PIXFRAME_UPLOAD_STORE_PASSWORD',
+    'PIXFRAME_UPLOAD_KEY_ALIAS',
+    'PIXFRAME_UPLOAD_KEY_PASSWORD'
+].every { project.hasProperty(it) && project.property(it) }
+
 android {
     namespace "com.yldst.pixframe"
     compileSdkVersion rootProject.ext.compileSdkVersion
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(project.property('PIXFRAME_UPLOAD_STORE_FILE'))
+                storePassword project.property('PIXFRAME_UPLOAD_STORE_PASSWORD')
+                keyAlias project.property('PIXFRAME_UPLOAD_KEY_ALIAS')
+                keyPassword project.property('PIXFRAME_UPLOAD_KEY_PASSWORD')
+            }
+        }
+    }
     defaultConfig {
         applicationId "com.yldst.pixframe"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode versionCodeValue
+        versionName versionNameValue
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
-             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
     buildTypes {
         release {
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
