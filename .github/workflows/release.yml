@@ -12,13 +12,13 @@ jobs:
   android-release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: mobile/package-lock.json
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9
         with:
           distribution: temurin
           java-version: 21
@@ -38,7 +38,7 @@ jobs:
           ORG_GRADLE_PROJECT_PIXFRAME_UPLOAD_KEY_PASSWORD: ${{ secrets.PIXFRAME_ANDROID_KEY_PASSWORD }}
       - run: |
           cp mobile/android/app/build/outputs/apk/release/app-release.apk Pixframe-android.apk
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: android-release
           path: |
@@ -46,8 +46,8 @@ jobs:
   ios-altstore-release:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
           cache: npm
@@ -65,7 +65,7 @@ jobs:
           cd "$tmp"
           zip -qry "$GITHUB_WORKSPACE/Pixframe-altstore.ipa" Payload
         working-directory: mobile
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ios-altstore-release
           path: Pixframe-altstore.ipa
@@ -75,15 +75,15 @@ jobs:
       - android-release
       - ios-altstore-release
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: android-release
           path: release-assets/android
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: ios-altstore-release
           path: release-assets/ios
@@ -96,7 +96,7 @@ jobs:
           printf '%s\n' '- Pixframe-android.apk' >> release-assets/release-notes.md
           printf '%s\n' '- Pixframe-altstore.ipa' >> release-assets/release-notes.md
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe
         with:
           body_path: release-assets/release-notes.md
           overwrite_files: true
