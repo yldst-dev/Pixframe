@@ -93,7 +93,33 @@ npm run dev -- --port 5174
 
 ## 배포
 
-Vercel 등의 정적 호스팅 서비스에 쉽게 배포할 수 있습니다. `web` 디렉토리를 루트로 설정하고 빌드 명령어로 `npm run build`를 사용하세요.
+### Dokploy + Dockerfile
+
+Dokploy에서는 저장소 루트의 `Dockerfile`을 그대로 사용하면 됩니다. 이 이미지는 `web` 앱만 빌드해서 정적 파일로 서빙하며, `mobile`은 Capacitor 기반 별도 클라이언트 빌드로 유지합니다.
+
+- Build Context: `/`
+- Dockerfile Path: `Dockerfile`
+- Internal Port: `8080`
+- Health Check Path: `/healthz`
+
+로컬 확인:
+
+```bash
+docker build -t pixframe-web .
+docker run --rm -p 8080:8080 pixframe-web
+```
+
+배포 후 다음 경로로 확인할 수 있습니다.
+
+- `/`
+- `/sponsors`
+- `/lab`
+- `/metadata`
+- `/healthz`
+
+### 기타 정적 호스팅
+
+Vercel 등의 정적 호스팅 서비스에도 배포할 수 있습니다. 이 경우 `web` 디렉토리를 루트로 설정하고 빌드 명령어로 `npm run build`를 사용하세요.
 
 ## 라이선스
 

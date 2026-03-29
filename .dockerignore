@@ -1,0 +1,11 @@
+.git
+.github
+.skills
+.DS_Store
+node_modules
+mobile
+preview image.jpg
+특허
+web/.DS_Store
+web/dist
+web/node_modules
