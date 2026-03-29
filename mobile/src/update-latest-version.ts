@@ -10,16 +10,13 @@ async function updateLatestVersion(): Promise<void> {
   try {
     const { version: publishedVersion, url } = await fetch('https://exif-frame.yldst.cam/version.json').then((res) => res.json());
 
-    // Update when the latest version is greater than the current version.
     if (semver.gt(publishedVersion, currentVersion)) {
       const bundle = await CapacitorUpdater.download({ url, version: publishedVersion });
       await CapacitorUpdater.set(bundle);
     } else {
-      // Hide splash screen when the latest version is not greater than the current version.
       await SplashScreen.hide();
     }
-  } catch (e) {
-    // Do nothing when failed to update.
+  } catch {
     await SplashScreen.hide();
   }
 
