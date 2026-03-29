@@ -10,7 +10,6 @@ const ThemeOptionListInput = (props: ThemeOption) => {
 
   useEffect(() => {
     setValue(Customize.get(selectedThemeName, props.id, getConverter(props.type)) ?? props.default);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedThemeName, rerenderOptions]);
 
   return (

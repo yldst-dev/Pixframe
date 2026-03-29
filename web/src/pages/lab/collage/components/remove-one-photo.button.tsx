@@ -1,3 +1,4 @@
+import type React from 'react';
 import { IoTrashOutline } from 'react-icons/io5';
 import { Button, Icon } from 'konsta/react';
 import { useStore } from '../store';

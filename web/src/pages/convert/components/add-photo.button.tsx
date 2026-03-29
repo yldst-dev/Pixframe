@@ -1,3 +1,4 @@
+import type React from 'react';
 import { ChangeEvent } from 'react';
 import { Button } from 'konsta/react';
 import Photo from '../../../core/photo';
@@ -20,7 +21,6 @@ const AddPhotoButton = () => {
       const newPhotos: Photo[] = [];
       for (let i = 0; i < fileArray.length; i++) {
         const file = fileArray[i];
-        // Use 1-based "current" so the fill is visible even for single-file imports.
         setLoadingProgress({ current: i + 1, total: fileArray.length, currentFileName: file.name });
         try {
           const photo = await Photo.create(file);
@@ -40,22 +40,22 @@ const AddPhotoButton = () => {
     }
   };
 
-  const onDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+  const onDragEnter = (e: React.DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
-  const onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+  const onDragLeave = (e: React.DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
-  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+  const onDragOver = (e: React.DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
   };
 
-  const onDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+  const onDrop = async (e: React.DragEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     const { files } = e.dataTransfer;

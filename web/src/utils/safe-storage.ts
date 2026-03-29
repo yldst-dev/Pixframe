@@ -111,7 +111,7 @@ export class SafeStorage {
 
     try {
       localStorage.setItem(key, value);
-    } catch (error) {
+    } catch {
       throw new LocalStorageError(`Failed to set localStorage item for key: ${key}`, key);
     }
   }
@@ -126,7 +126,7 @@ export class SafeStorage {
     try {
       const serialized = JSON.stringify(value);
       this.setItem(key, serialized);
-    } catch (error) {
+    } catch {
       throw new LocalStorageError(`Failed to serialize value for localStorage key: ${key}`, key);
     }
   }

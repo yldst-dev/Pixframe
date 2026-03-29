@@ -35,7 +35,7 @@ const OverrideMetadataPopup = () => {
         <Navbar
           title={t('root.override-metadata')}
           right={
-            <Link navbar onClick={() => setOverrideMetadataPopup(false)}>
+            <Link onClick={() => setOverrideMetadataPopup(false)}>
               {t('close')}
             </Link>
           }

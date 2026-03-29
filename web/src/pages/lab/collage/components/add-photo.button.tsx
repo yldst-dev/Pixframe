@@ -1,3 +1,4 @@
+import type React from 'react';
 import { ChangeEvent } from 'react';
 import { ListButton } from 'konsta/react';
 import { useTranslation } from 'react-i18next';

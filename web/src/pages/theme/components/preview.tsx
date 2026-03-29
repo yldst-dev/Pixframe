@@ -48,7 +48,6 @@ const Preview = () => {
       ctx.drawImage(canvas, 0, 0, preview.width, preview.height);
       free(canvas);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedThemeName, rerenderOptions, tabIndex]);
 
   return <canvas id="preview" className="w-4/6 md:w-2/6 mx-auto mt-4" style={{ maxHeight: '1000px', maxWidth: '1000px', backgroundColor: darkMode ? '#000000' : '#ffffff' }} />;

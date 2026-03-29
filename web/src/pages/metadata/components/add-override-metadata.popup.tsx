@@ -59,7 +59,7 @@ const AddOverrideMetadataPopup = () => {
         <Navbar
           title={t('root.settings.create-metadata')}
           right={
-            <Link navbar onClick={() => setAddOverridableMetadataPopup(false)}>
+            <Link onClick={() => setAddOverridableMetadataPopup(false)}>
               {t('close')}
             </Link>
           }
