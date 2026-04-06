@@ -15,6 +15,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "packageManager": "npm@10.9.2",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/yldst-dev/Pixframe/issues"
