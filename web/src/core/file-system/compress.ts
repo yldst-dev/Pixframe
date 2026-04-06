@@ -1,14 +1,20 @@
-import JSZip from 'jszip';
+import { inputToBlob } from '../export/blob';
+import { ZipWriter } from '../export/zip';
 
-/**
- * Compress files into a zip file.
- * @returns Base64 encoded zip file.
- */
-export default async function compress(files: { filename: string; data: string }[]): Promise<string> {
-  const zip = new JSZip();
-  files.forEach((file) => zip.file(file.filename, file.data.split(',')[1], { base64: true }));
-  const blob = await zip.generateAsync({ type: 'blob' });
-  const reader = new FileReader();
-  reader.readAsDataURL(blob);
-  return new Promise((resolve) => (reader.onloadend = () => resolve(reader.result as string)));
+interface CompressFile {
+  filename: string;
+  data: Blob | string;
+}
+
+export default async function compress(files: CompressFile[]): Promise<Blob> {
+  const zip = new ZipWriter();
+
+  for (const file of files) {
+    zip.addFile({
+      blob: await inputToBlob(file.data),
+      filename: file.filename,
+    });
+  }
+
+  return await zip.finalize();
 }

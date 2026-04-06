@@ -9,16 +9,19 @@ import Loading from '../pages/convert/components/loading';
 import AddPhotoErrorDialog from '../pages/convert/components/add-photo-error.dialog';
 import DownloadWarningDialog from '../pages/convert/components/download-warning.dialog';
 import DeleteAllDialog from '../pages/convert/components/delete-all.dialog';
-import Photo from '../core/photo';
+import PhotoQueueDialog from './photo-queue-dialog';
 import Button from './ui/button';
 import IconButton from './ui/icon-button';
 import AddIcon from '../icons/add.icon';
 import SettingsIcon from '../icons/settings.icon';
 import DownloadIcon from '../icons/download.icon';
 import TrashIcon from '../icons/trash.icon';
-import render from '../core/drawing/render';
-import JSZip from 'jszip';
 import { CgMoon, CgSun } from 'react-icons/cg';
+import { usePhotoIntake } from '../hooks/use-photo-intake';
+import { createObjectUrl, revokeObjectUrl } from '../core/export/blob';
+import { exportPhotosSequentially } from '../core/export/sequential-photo-export';
+import { resolveThemeOptions } from '../core/export/theme-options';
+import { ZipWriter } from '../core/export/zip';
 
 const THEME_DARK_MODE_SUPPORTED_THEMES = new Set<string>([
   'Just frame',
@@ -36,10 +39,9 @@ const MobileLayout = () => {
   const store = useStore();
   const {
     photos,
+    queuedFiles,
     setPhotos,
-    setLoading,
-    setLoadingProgress,
-    setOpenedAddPhotoErrorDialog,
+    clearAllPhotos,
     selectedThemeName,
     setSelectedThemeName,
     themeDarkMode,
@@ -53,41 +55,15 @@ const MobileLayout = () => {
   const [downloadProgress, setDownloadProgress] = useState({ current: 0, total: 0 });
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const { addFiles } = usePhotoIntake({
+    onManualPhotosAdded: (startIndex, addedCount) => {
+      if (addedCount > 0) {
+        setSelectedImageIndex(startIndex);
+      }
+    },
+  });
 
   const themeDarkModeSupported = THEME_DARK_MODE_SUPPORTED_THEMES.has(selectedThemeName);
-
-  const handleAddPhotos = useCallback(async (files: File[]) => {
-    if (files.length === 0) return;
-    setLoading(true);
-    setLoadingProgress({ current: 0, total: files.length, currentFileName: files[0]?.name || '' });
-
-    try {
-      const newPhotos: Photo[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        // Use 1-based "current" so the fill is visible even for single-file imports.
-        setLoadingProgress({ current: i + 1, total: files.length, currentFileName: file.name });
-        try {
-          const photo = await Photo.create(file);
-          newPhotos.push(photo);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-
-      if (newPhotos.length === 0) {
-        setOpenedAddPhotoErrorDialog(true);
-      } else {
-        setPhotos([...photos, ...newPhotos]);
-        // Select the first newly added photo
-        if (newPhotos.length > 0) {
-          setSelectedImageIndex(photos.length);
-        }
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [photos, setPhotos, setLoading, setLoadingProgress, setOpenedAddPhotoErrorDialog]);
 
   const handleThemeSelect = useCallback((themeName: string) => {
     setSelectedThemeName(themeName);
@@ -113,7 +89,7 @@ const MobileLayout = () => {
     input.onchange = (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files) {
-        handleAddPhotos(Array.from(files));
+        void addFiles(files);
       }
     };
     input.click();
@@ -131,72 +107,31 @@ const MobileLayout = () => {
             throw new Error(`Theme "${selectedThemeName}" not found`);
         }
 
-        // Create a Map with all required options and their default values
-        const themeOptions = new Map();
-        
-        // First, set all default values from theme options
-        selectedTheme.options.forEach(option => {
-            themeOptions.set(option.id, option.default);
-        });
-        
-        // Then override with user-configured values if they exist
-        themeOptionsStore.forEach((value, key) => {
-            if (selectedTheme.options.some(opt => opt.id === key)) {
-                themeOptions.set(key, value);
-            }
-        });
-
-        // Create a new ZIP file
-        const zip = new JSZip();
-        
-        // Process each photo and add to ZIP
-        for (let i = 0; i < photos.length; i++) {
-            const photo = photos[i];
-            
-            try {
-                // Update progress
-                setDownloadProgress({ current: i + 1, total: photos.length });
-                
-                // Generate themed image
-                const canvas = await render(selectedTheme.func, photo, themeOptions, store);
-                
-                // Convert canvas to blob
-                const blob = await new Promise<Blob>((resolve) => {
-                    canvas.toBlob((blob) => {
-                        resolve(blob!);
-                    }, 'image/jpeg', store.quality || 0.95);
-                });
-                
-                // Generate filename with theme name
-                const fileExtension = photo.file.name.split('.').pop();
-                const baseFileName = photo.file.name.replace(/\.[^/.]+$/, "");
-                const themeName = selectedThemeName.replace(/\s+/g, '_').toLowerCase();
-                const fileName = `${baseFileName}_${themeName}.${store.exportToJpeg ? 'jpg' : fileExtension}`;
-                
-                // Add the image to ZIP file
-                zip.file(fileName, blob);
-                
-            } catch (error) {
-                console.error(`Failed to process photo ${i + 1}:`, error);
-            }
+        const themeOptions = resolveThemeOptions(selectedTheme.options, themeOptionsStore);
+        const zip = new ZipWriter();
+        for await (const file of exportPhotosSequentially({
+            onProgress: (progress) => {
+              setDownloadProgress({ current: progress.current, total: progress.total });
+            },
+            photos,
+            store,
+            themeFunc: selectedTheme.func,
+            themeName: selectedThemeName,
+            themeOptions,
+        })) {
+            zip.addFile(file);
         }
-        
-        // Generate ZIP file and download
-        const zipBlob = await zip.generateAsync({ type: 'blob' });
-        
-        // Create download link for ZIP file
+        const zipBlob = await zip.finalize();
         const themeName = selectedThemeName.replace(/\s+/g, '_').toLowerCase();
         const zipFileName = `PixFrame_${themeName}_${photos.length}photos.zip`;
         
         const link = document.createElement('a');
-        link.href = URL.createObjectURL(zipBlob);
+        link.href = createObjectUrl(zipBlob);
         link.download = zipFileName;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
-        // Clean up the object URL
-        URL.revokeObjectURL(link.href);
+        revokeObjectUrl(link.href);
         
     } catch (error) {
         console.error('Download failed:', error);
@@ -211,12 +146,9 @@ const MobileLayout = () => {
     const targetIndex = index ?? selectedImageIndex;
     if (targetIndex === null) return;
     
-    // Remove the photo from the store
     const newPhotos = [...photos];
     newPhotos.splice(targetIndex, 1);
     setPhotos(newPhotos);
-    
-    // Adjust selected index
     if (newPhotos.length === 0) {
       setSelectedImageIndex(null);
     } else if (selectedImageIndex !== null && selectedImageIndex >= newPhotos.length) {
@@ -224,7 +156,6 @@ const MobileLayout = () => {
     }
   }, [photos, selectedImageIndex, setPhotos]);
 
-  // Listen for delete event from ImagePreview
   useEffect(() => {
     const handleDeleteEvent = (event: Event) => {
       const e = event as CustomEvent<{ index: number }>;
@@ -243,19 +174,23 @@ const MobileLayout = () => {
   }, [photos.length]);
 
   const confirmDeleteAll = useCallback(() => {
-    setPhotos([]);
+    clearAllPhotos();
     setSelectedImageIndex(null);
-  }, [setPhotos]);
+  }, [clearAllPhotos]);
 
   return (
     <div className="h-[100dvh] flex flex-col bg-background overflow-hidden fixed inset-0">
-      {/* Top Toolbar - Simplified for Mobile */}
       <header className="bg-background border-b border-border h-14 flex items-center px-4 justify-between shrink-0 z-30">
          <div className="flex items-center space-x-2">
             <img src="/logo.png" alt="PixFrame" className="w-8 h-8" />
             <h1 className="text-lg font-bold tracking-tight uppercase">PixFrame</h1>
         </div>
         <div className="flex items-center space-x-2">
+          {queuedFiles.length > 0 && (
+            <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+              {t('queue.badge', { count: queuedFiles.length })}
+            </span>
+          )}
           <IconButton
             variant="ghost"
             size="sm"
@@ -275,7 +210,6 @@ const MobileLayout = () => {
         </div>
       </header>
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 bg-muted/30 relative overflow-hidden">
         {photos.length === 0 ? (
            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-6">
@@ -298,7 +232,6 @@ const MobileLayout = () => {
            </div>
         ) : (
            <div className="flex-1 flex flex-col overflow-hidden">
-             {/* Image Preview Area */}
              <div className="flex-1 relative bg-muted/10 flex items-center justify-center overflow-hidden">
                 {selectedImageIndex !== null && photos[selectedImageIndex] ? (
                   <div className="w-full h-full flex items-center justify-center">
@@ -309,7 +242,6 @@ const MobileLayout = () => {
                 )}
              </div>
 
-              {/* Theme Selector (Bottom Scroll) */}
               <div className="h-12 bg-background border-t border-border shrink-0 flex items-center px-2">
                 <div className="flex-1 overflow-x-auto flex items-center space-x-2 no-scrollbar">
                   {themes.map((theme) => (
@@ -347,7 +279,6 @@ const MobileLayout = () => {
                 </div>
               </div>
 
-             {/* Horizontal Photo List (Bottom Sheet style) */}
              <div className="bg-background border-t border-border shrink-0 overflow-x-auto flex items-center px-4 space-x-3 py-3 min-h-[6rem] max-h-[30vh]">
                <button 
                  onClick={handleFileInputClick}
@@ -385,7 +316,6 @@ const MobileLayout = () => {
         )}
       </div>
 
-      {/* Settings Sheet (Full screen on mobile) */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-bottom-full duration-300">
            <div className="flex items-center justify-between p-4 border-b border-border">
@@ -408,7 +338,6 @@ const MobileLayout = () => {
         onConfirm={handleDownload} 
       />
 
-      {/* Download Progress Modal */}
       {showDownloadModal && (
           <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
               <div className="bg-card border border-border p-8 max-w-sm w-full shadow-2xl flex flex-col items-center">
@@ -423,8 +352,8 @@ const MobileLayout = () => {
 
       <Loading />
       <AddPhotoErrorDialog />
+      <PhotoQueueDialog />
       
-      {/* Delete All Dialog */}
       <DeleteAllDialog
         isOpen={showDeleteAllDialog}
         onClose={() => setShowDeleteAllDialog(false)}

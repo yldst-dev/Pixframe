@@ -5,28 +5,27 @@ import themes, { useThemeStore } from '../themes';
 import SettingsPanel from './settings-panel';
 import PfLoader from './ui/pf-loader';
 import ImagePreview from './settings/image-preview';
+import PhotoQueueDialog from './photo-queue-dialog';
 import Loading from '../pages/convert/components/loading';
 import AddPhotoErrorDialog from '../pages/convert/components/add-photo-error.dialog';
 import DownloadWarningDialog from '../pages/convert/components/download-warning.dialog';
 import DeleteAllDialog from '../pages/convert/components/delete-all.dialog';
-import Photo from '../core/photo';
 import Button from './ui/button';
 import IconButton from './ui/icon-button';
 import AddIcon from '../icons/add.icon';
 import SettingsIcon from '../icons/settings.icon';
 import TrashIcon from '../icons/trash.icon';
-import render from '../core/drawing/render';
 import { CgMoon, CgSun } from 'react-icons/cg';
 import { IoCheckmarkCircle, IoDownloadOutline, IoImagesOutline, IoFolderOpenOutline } from 'react-icons/io5';
 import { Capacitor } from '@capacitor/core';
-import convert from '../core/drawing/convert';
-import free from '../core/drawing/free';
 import downloadFile from '../core/file-system/download';
-import compress from '../core/file-system/compress';
-import saveNativeBatch from '../core/file-system/save-native-batch';
 import { showToast } from '../core/toast';
 import { openPhotoLibrary, openFileBrowser } from '../utils/image-file-picker';
 import AddPhotoModal from './add-photo-modal';
+import { usePhotoIntake } from '../hooks/use-photo-intake';
+import { exportPhotosSequentially } from '../core/export/sequential-photo-export';
+import { resolveThemeOptions } from '../core/export/theme-options';
+import { ZipWriter } from '../core/export/zip';
 
 const THEME_DARK_MODE_SUPPORTED_THEMES = new Set<string>([
   'Just frame',
@@ -44,9 +43,9 @@ const MobileLayout = () => {
   const store = useStore();
   const {
     photos,
+    queuedFiles,
     setPhotos,
-    setLoading,
-    setLoadingProgress,
+    clearAllPhotos,
     setOpenedAddPhotoErrorDialog,
     selectedThemeName,
     setSelectedThemeName,
@@ -63,6 +62,13 @@ const MobileLayout = () => {
   const [showDownloadSuccess, setShowDownloadSuccess] = useState(false);
   const [showAddPhotoModal, setShowAddPhotoModal] = useState(false);
   const downloadSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { addFiles } = usePhotoIntake({
+    onManualPhotosAdded: (startIndex, addedCount) => {
+      if (addedCount > 0) {
+        setSelectedImageIndex(startIndex);
+      }
+    },
+  });
 
   const themeDarkModeSupported = THEME_DARK_MODE_SUPPORTED_THEMES.has(selectedThemeName);
 
@@ -76,37 +82,6 @@ const MobileLayout = () => {
       downloadSuccessTimerRef.current = null;
     }, 2000);
   }, []);
-
-  const handleAddPhotos = useCallback(async (files: File[]) => {
-    if (files.length === 0) return;
-    setLoading(true);
-    setLoadingProgress({ current: 0, total: files.length, currentFileName: files[0]?.name || '' });
-
-    try {
-      const newPhotos: Photo[] = [];
-      for (let i = 0; i < files.length; i += 1) {
-        const file = files[i];
-        setLoadingProgress({ current: i + 1, total: files.length, currentFileName: file.name });
-        try {
-          const photo = await Photo.create(file);
-          newPhotos.push(photo);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-
-      if (newPhotos.length === 0) {
-        setOpenedAddPhotoErrorDialog(true);
-      } else {
-        setPhotos([...photos, ...newPhotos]);
-        if (newPhotos.length > 0) {
-          setSelectedImageIndex(photos.length);
-        }
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [photos, setPhotos, setLoading, setLoadingProgress, setOpenedAddPhotoErrorDialog]);
 
   const handleThemeSelect = useCallback((themeName: string) => {
     setSelectedThemeName(themeName);
@@ -128,7 +103,7 @@ const MobileLayout = () => {
     void openPhotoLibrary()
       .then((files) => {
         if (files.length > 0) {
-          void handleAddPhotos(files);
+          void addFiles(files);
         }
       })
       .catch((error) => {
@@ -141,12 +116,11 @@ const MobileLayout = () => {
     void openFileBrowser()
       .then((files) => {
         if (files.length > 0) {
-          void handleAddPhotos(files);
+          void addFiles(files);
         }
       })
       .catch((error) => {
         console.error(error);
-        setOpenedAddPhotoErrorDialog(true);
       });
   };
 
@@ -162,75 +136,54 @@ const MobileLayout = () => {
         throw new Error(`Theme "${selectedThemeName}" not found`);
       }
 
-      const themeOptions = new Map();
-      selectedTheme.options.forEach((option) => {
-        themeOptions.set(option.id, option.default);
-      });
+      const themeOptions = resolveThemeOptions(selectedTheme.options, themeOptionsStore);
 
-      themeOptionsStore.forEach((value, key) => {
-        if (selectedTheme.options.some((option) => option.id === key)) {
-          themeOptions.set(key, value);
-        }
-      });
-
-      const imageType = store.exportToJpeg ? 'image/jpeg' : 'image/webp';
-      const imageExtension = store.exportToJpeg ? 'jpg' : 'webp';
-      const quality = store.quality || 95;
       const themeName = selectedThemeName.replace(/\s+/g, '_').toLowerCase();
-      const resolveFileName = (index: number): string => {
-        const baseFileName = photos[index].file.name.replace(/\.[^/.]+$/, '');
-        return `${baseFileName}_${themeName}.${imageExtension}`;
-      };
 
       if (Capacitor.isNativePlatform()) {
-        const result = await saveNativeBatch(
-          {
-            total: photos.length,
-            getFileName: resolveFileName,
-            getFile: async (index: number) => {
-              const photo = photos[index];
-              const canvas = await render(selectedTheme.func, photo, themeOptions, store);
-              try {
-                const filename = resolveFileName(index);
-                const data = await convert(canvas, { type: imageType, quality });
-                return { filename, data };
-              } finally {
-                free(canvas);
-              }
-            },
+        const failed: string[] = [];
+        for await (const file of exportPhotosSequentially({
+          onProgress: (progress) => {
+            setDownloadProgress({ current: progress.current, total: progress.total });
           },
-          {
-            onProgress: (current, total) => {
-              setDownloadProgress({ current, total });
-            },
+          photos,
+          store,
+          themeFunc: selectedTheme.func,
+          themeName: selectedThemeName,
+          themeOptions,
+        })) {
+          try {
+            await downloadFile(file.filename, file.blob);
+          } catch (error) {
+            failed.push(file.filename);
+            console.error(`Failed to save file: ${file.filename}`, error);
           }
-        );
+        }
 
-        if (result.failed.length > 0) {
-          throw new Error(`Failed to save ${result.failed.length} file(s)`);
+        if (failed.length > 0) {
+          throw new Error(`Failed to save ${failed.length} file(s)`);
         }
         triggerDownloadSuccess();
         showToast(t('root.successfully-downloaded-in-gallery'));
         return;
       }
 
-      const files: { filename: string; data: string }[] = [];
-      for (let i = 0; i < photos.length; i += 1) {
-        const photo = photos[i];
-        const canvas = await render(selectedTheme.func, photo, themeOptions, store);
-        try {
-          const filename = resolveFileName(i);
-          const data = await convert(canvas, { type: imageType, quality });
-          files.push({ filename, data });
-          setDownloadProgress({ current: i + 1, total: photos.length });
-        } finally {
-          free(canvas);
-        }
+      const zip = new ZipWriter();
+      for await (const file of exportPhotosSequentially({
+        onProgress: (progress) => {
+          setDownloadProgress({ current: progress.current, total: progress.total });
+        },
+        photos,
+        store,
+        themeFunc: selectedTheme.func,
+        themeName: selectedThemeName,
+        themeOptions,
+      })) {
+        zip.addFile(file);
       }
-
-      const zip = await compress(files);
+      const zipBlob = await zip.finalize();
       const zipFileName = `PixFrame_${themeName}_${photos.length}photos.zip`;
-      await downloadFile(zipFileName, zip);
+      await downloadFile(zipFileName, zipBlob);
       triggerDownloadSuccess();
     } catch (error) {
       console.error('Download failed:', error);
@@ -285,9 +238,9 @@ const MobileLayout = () => {
   }, [photos.length]);
 
   const confirmDeleteAll = useCallback(() => {
-    setPhotos([]);
+    clearAllPhotos();
     setSelectedImageIndex(null);
-  }, [setPhotos]);
+  }, [clearAllPhotos]);
 
   return (
     <div className="h-[100dvh] flex flex-col bg-background overflow-hidden fixed inset-0 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
@@ -297,6 +250,11 @@ const MobileLayout = () => {
             <h1 className="text-lg font-bold tracking-tight uppercase">PixFrame</h1>
         </div>
         <div className="flex items-center space-x-2">
+          {queuedFiles.length > 0 && (
+            <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+              {t('queue.badge', { count: queuedFiles.length })}
+            </span>
+          )}
           <IconButton
             variant="ghost"
             size="sm"
@@ -485,6 +443,7 @@ const MobileLayout = () => {
 
       <Loading />
       <AddPhotoErrorDialog />
+      <PhotoQueueDialog />
       
       <DeleteAllDialog
         isOpen={showDeleteAllDialog}

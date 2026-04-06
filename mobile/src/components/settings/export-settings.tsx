@@ -49,7 +49,6 @@ const ExportSettings = () => {
 
   return (
     <div className="p-4 space-y-6">
-      {/* Output Format */}
       <div className="space-y-4">
         <h3 className="font-medium text-gray-900 dark:text-white">
           {t('export.format', 'Output Format')}
@@ -66,27 +65,29 @@ const ExportSettings = () => {
           />
         </SettingItem>
 
-        <SettingItem
-          title={t('export.quality', 'Quality')}
-          description={t('export.quality.description', 'Higher quality = larger file size')}
-        >
-          <div className="space-y-2">
-            <input
-              type="range"
-              min="0.1"
-              max="1"
-              step="0.1"
-              value={quality}
-              onChange={(e) => setQuality(parseFloat(e.target.value))}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-              <span>{t('export.quality.low', '낮음 (10%)')}</span>
-              <span className="font-medium">{Math.round(quality * 100)}%</span>
-              <span>{t('export.quality.high', '높음 (100%)')}</span>
+        {exportToJpeg && (
+          <SettingItem
+            title={t('export.quality', 'Quality')}
+            description={t('export.quality.description', 'Higher quality = larger file size')}
+          >
+            <div className="space-y-2">
+              <input
+                type="range"
+                min="0.1"
+                max="1"
+                step="0.1"
+                value={quality}
+                onChange={(e) => setQuality(parseFloat(e.target.value))}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>{t('export.quality.low', '낮음 (10%)')}</span>
+                <span className="font-medium">{Math.round(quality * 100)}%</span>
+                <span>{t('export.quality.high', '높음 (100%)')}</span>
+              </div>
             </div>
-          </div>
-        </SettingItem>
+          </SettingItem>
+        )}
 
         <SettingItem
           title={t('export.width.enable', '너비 고정')}
@@ -137,10 +138,8 @@ const ExportSettings = () => {
         </SettingItem>
       </div>
 
-      {/* Divider */}
       <div className="border-t border-gray-200 dark:border-gray-700"></div>
 
-      {/* Metadata Display */}
       <div className="space-y-4">
         <h3 className="font-medium text-gray-900 dark:text-white">
           {t('export.metadata', 'Metadata Display')}
@@ -167,10 +166,8 @@ const ExportSettings = () => {
         </div>
       </div>
 
-      {/* Divider */}
       <div className="border-t border-gray-200 dark:border-gray-700"></div>
 
-      {/* Advanced Options */}
       <div className="space-y-4">
         <h3 className="font-medium text-gray-900 dark:text-white">
           {t('export.advanced', 'Advanced Options')}
@@ -192,7 +189,6 @@ const ExportSettings = () => {
         </div>
       </div>
 
-      {/* Export Actions */}
       <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
         <Button 
           variant="primary" 

@@ -46,6 +46,10 @@
   "root.bug-report": "バグ報告",
   "root.feature-request": "機能リクエスト",
   "root.loaded-photos": "読み込まれた写真",
+  "queue.badge": "待機列 {{count}}枚",
+  "queue.notice.title": "写真キューのお知らせ",
+  "queue.notice.body": "すぐに読み込む写真は最大 {{activeLimit}} 枚です。今回 {{acceptedCount}} 枚を追加し、{{queuedCount}} 枚を待機列に入れました。",
+  "queue.notice.footer": "現在の待機列は {{queueTotal}} 枚です。写真を削除すると空いた分だけ自動で続けて読み込みます。",
 
   "root.sponsor-description": "2024年5月から2024年11月まで一時的に行った後援機能を通じて後援してくださったありがたい方々をご紹介します。 後援していただいた金額はApple開発者アカウントの延長、開発に役立つコーヒーの購入などに使われました。 ご後援いただき、心を込めてお礼を申し上げます。",
   "root.sponsors": "スポンサー",

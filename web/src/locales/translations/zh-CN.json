@@ -47,6 +47,10 @@
   "root.bug-report": "错误报告",
   "root.feature-request": "功能请求",
   "root.loaded-photos": "加载的照片",
+  "queue.badge": "队列 {{count}} 张",
+  "queue.notice.title": "照片队列提醒",
+  "queue.notice.body": "最多只会立即加载 {{activeLimit}} 张照片。本次已立即添加 {{acceptedCount}} 张，另有 {{queuedCount}} 张进入队列。",
+  "queue.notice.footer": "当前队列中还有 {{queueTotal}} 张照片。删除已加载照片后，会按空位自动继续加载。",
 
   "root.sponsor-description": "介绍通过2024年5月至2024年11月暂时进行的后援功能进行后援的感谢的人们。 赞助的金额用于延长Apple开发者账户、购买有助于开发的咖啡等。 真心感谢您的支持。",
   "root.sponsors": "赞助商",

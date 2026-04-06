@@ -65,26 +65,28 @@ const ExportSettings = () => {
           />
         </SettingItem>
 
-        <SettingItem
-          title={t('export.quality', 'Quality')}
-          description={t('export.quality.description', 'Higher quality = larger file size')}
-        >
-          <div className="space-y-2">
-            <Slider
-              min={0.1}
-              max={1}
-              step={0.1}
-              value={quality}
-              onChange={setQuality}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-              <span>{t('export.quality.low', '낮음 (10%)')}</span>
-              <span className="font-medium">{Math.round(quality * 100)}%</span>
-              <span>{t('export.quality.high', '높음 (100%)')}</span>
+        {exportToJpeg && (
+          <SettingItem
+            title={t('export.quality', 'Quality')}
+            description={t('export.quality.description', 'Higher quality = larger file size')}
+          >
+            <div className="space-y-2">
+              <Slider
+                min={0.1}
+                max={1}
+                step={0.1}
+                value={quality}
+                onChange={setQuality}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>{t('export.quality.low', '낮음 (10%)')}</span>
+                <span className="font-medium">{Math.round(quality * 100)}%</span>
+                <span>{t('export.quality.high', '높음 (100%)')}</span>
+              </div>
             </div>
-          </div>
-        </SettingItem>
+          </SettingItem>
+        )}
 
         <SettingItem
           title={t('export.width.enable', '너비 고정')}

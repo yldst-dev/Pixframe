@@ -1,14 +1,15 @@
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useStore } from '../store';
 import ImageIcon from '../icons/image.icon';
 import AddIcon from '../icons/add.icon';
 import Button from './ui/button';
-import Photo from '../core/photo';
 
-const DropZone = () => {
+interface DropZoneProps {
+  onAddPhotos: (files: File[] | FileList) => Promise<void>;
+}
+
+const DropZone: React.FC<DropZoneProps> = ({ onAddPhotos }) => {
   const { t } = useTranslation();
-  const { photos, setPhotos, setLoading, setLoadingProgress, setOpenedAddPhotoErrorDialog } = useStore();
   const [isDragOver, setIsDragOver] = useState(false);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -21,35 +22,6 @@ const DropZone = () => {
     setIsDragOver(false);
   }, []);
 
-  const handleAddPhotos = useCallback(async (files: File[]) => {
-    if (files.length === 0) return;
-    setLoading(true);
-    setLoadingProgress({ current: 0, total: files.length, currentFileName: files[0]?.name || '' });
-
-    try {
-      const newPhotos: Photo[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        // Use 1-based "current" so the fill is visible even for single-file imports.
-        setLoadingProgress({ current: i + 1, total: files.length, currentFileName: file.name });
-        try {
-          const photo = await Photo.create(file);
-          newPhotos.push(photo);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-
-      if (newPhotos.length === 0) {
-        setOpenedAddPhotoErrorDialog(true);
-      } else {
-        setPhotos([...photos, ...newPhotos]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [photos, setPhotos, setLoading, setLoadingProgress, setOpenedAddPhotoErrorDialog]);
-
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
@@ -59,9 +31,9 @@ const DropZone = () => {
     );
     
     if (files.length > 0) {
-      handleAddPhotos(files);
+      void onAddPhotos(files);
     }
-  }, [handleAddPhotos]);
+  }, [onAddPhotos]);
 
   const handleFileSelect = useCallback(() => {
     const input = document.createElement('input');
@@ -71,11 +43,11 @@ const DropZone = () => {
     input.onchange = (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files) {
-        handleAddPhotos(Array.from(files));
+        void onAddPhotos(files);
       }
     };
     input.click();
-  }, [handleAddPhotos]);
+  }, [onAddPhotos]);
 
   return (
     <div className="h-full flex items-center justify-center p-8">

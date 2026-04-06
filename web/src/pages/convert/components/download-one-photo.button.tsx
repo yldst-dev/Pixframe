@@ -9,7 +9,6 @@ import free from '../../../core/drawing/free';
 import download from '../../../core/file-system/download';
 import { ThemeOptionInput, getConverter } from '../../theme/types/theme-option';
 import Customize from '../../theme/database/customize';
-// import { ExifRestorer } from 'exif-restorer'; // Temporarily disabled
 
 interface DownloadOnePhotoButtonProps {
   photo: Photo;
@@ -40,15 +39,17 @@ const DownloadOnePhotoButton: React.FC<DownloadOnePhotoButtonProps> = ({ photo }
           await new Promise((resolve) => setTimeout(resolve, 100));
 
           const canvas = await render(func!, photo, input, store);
-          const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'webp'}`);
-          const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/webp', quality });
-          free(canvas);
+          try {
+            const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'png'}`);
+            const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality });
 
-          if (exportToJpeg && maintainExif) {
-            // await download(filename, ExifRestorer.restore(photo.imageBase64, data));
-            await download(filename, data); // Temporarily disabled EXIF restoration
-          } else {
-            await download(filename, data); // TODO: Add Exif data to the webp file
+            if (exportToJpeg && maintainExif) {
+              await download(filename, data);
+            } else {
+              await download(filename, data);
+            }
+          } finally {
+            free(canvas);
           }
 
           setLoading(false);

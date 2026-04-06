@@ -5,14 +5,15 @@ import DownloadIcon from '../icons/download.icon';
 import GitHubIcon from '../icons/github.icon';
 import PfLoader from './ui/pf-loader';
 import themes, { useThemeStore } from '../themes';
-import render from '../core/drawing/render';
 import Button from './ui/button';
 import IconButton from './ui/icon-button';
-import JSZip from 'jszip';
 import SettingsIcon from '../icons/settings.icon';
 import ImageIcon from '../icons/image.icon';
 import DownloadSettingsModal from './settings/download-settings-modal';
-import { getExportFormat } from '../utils/export-format';
+import { createObjectUrl, revokeObjectUrl } from '../core/export/blob';
+import { exportPhotosSequentially } from '../core/export/sequential-photo-export';
+import { resolveThemeOptions } from '../core/export/theme-options';
+import { ZipWriter } from '../core/export/zip';
 
 interface TopToolbarProps {
   isPhotoSidebarOpen: boolean;
@@ -50,60 +51,34 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
                 throw new Error(`Theme "${selectedThemeName}" not found`);
             }
 
-            const themeOptions = new Map();
-            
-            selectedTheme.options.forEach(option => {
-                themeOptions.set(option.id, option.default);
-            });
-            
-            themeStore.option.forEach((value, key) => {
-                if (selectedTheme.options.some(opt => opt.id === key)) {
-                    themeOptions.set(key, value);
-                }
-            });
+            const themeOptions = resolveThemeOptions(selectedTheme.options, themeStore.option);
 
-            const zip = new JSZip();
-            
-            for (let i = 0; i < photos.length; i++) {
-                const photo = photos[i];
-                
-                try {
-                    setDownloadProgress({ current: i + 1, total: photos.length });
-                    
-                    const canvas = await render(selectedTheme.func, photo, themeOptions, store);
-                    
-                    const { mimeType, extension, useJpeg } = getExportFormat(photo.file.name, store.exportToJpeg);
-                    const quality = useJpeg ? store.quality || 0.95 : undefined;
-                    const blob = await new Promise<Blob>((resolve) => {
-                        canvas.toBlob((blob) => {
-                            resolve(blob!);
-                        }, mimeType, quality);
-                    });
-                    
-                    const baseFileName = photo.file.name.replace(/\.[^/.]+$/, "");
-                    const themeName = selectedThemeName.replace(/\s+/g, '_').toLowerCase();
-                    const fileName = `${baseFileName}_${themeName}.${extension}`;
-                    
-                    zip.file(fileName, blob);
-                    
-                } catch (error) {
-                    console.error(`Failed to process photo ${i + 1}:`, error);
-                }
+            const zip = new ZipWriter();
+            for await (const file of exportPhotosSequentially({
+                onProgress: (progress) => {
+                    setDownloadProgress({ current: progress.current, total: progress.total });
+                },
+                photos,
+                store,
+                themeFunc: selectedTheme.func,
+                themeName: selectedThemeName,
+                themeOptions,
+            })) {
+                zip.addFile(file);
             }
-            
-            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const zipBlob = await zip.finalize();
             
             const themeName = selectedThemeName.replace(/\s+/g, '_').toLowerCase();
             const zipFileName = `exif_frames_${themeName}_${photos.length}photos.zip`;
             
             const link = document.createElement('a');
-            link.href = URL.createObjectURL(zipBlob);
+            link.href = createObjectUrl(zipBlob);
             link.download = zipFileName;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             
-            URL.revokeObjectURL(link.href);
+            revokeObjectUrl(link.href);
             
         } catch (error) {
             console.error('Download failed:', error);

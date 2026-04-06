@@ -3,9 +3,6 @@ import ExifMetadata from './exif-metadata/exif-metadata';
 import overrideExifMetadata from './exif-metadata/override-exif-metadata';
 import { SafeStorage } from '../utils/safe-storage';
 
-/**
- * Represents a photo.
- */
 class Photo {
   private constructor() {}
 
@@ -15,15 +12,6 @@ class Photo {
   public imageBase64!: string;
   public thumbnail!: string;
 
-  /**
-   * Creates a photo.
-   * @param file - The file to create a photo from.
-   * @returns The created photo.
-   * @example
-   * ```typescript
-   * const photo = await Photo.create(file);
-   * ```
-   */
   public static async create(file: File): Promise<Photo> {
     const photo = new Photo();
 
@@ -40,13 +28,12 @@ class Photo {
         const { default: heic2any } = await import('heic2any');
         const convertedBlob = await heic2any({
           blob: file,
-          toType: 'image/jpeg',
-          quality: 0.95,
+          toType: 'image/png',
         }) as Blob;
 
         const originalName = file.name.replace(/\.(heic|heif)$/i, '');
-        processedFile = new File([convertedBlob], `${originalName}.jpg`, {
-          type: 'image/jpeg',
+        processedFile = new File([convertedBlob], `${originalName}.png`, {
+          type: 'image/png',
           lastModified: file.lastModified,
         });
       } catch (error) {
@@ -80,28 +67,16 @@ class Photo {
     return photo;
   }
 
-  /**
-   * Returns the make of the camera that took the photo.
-   * @example 'SONY'
-   */
   public get make(): string {
     if (!SafeStorage.getBooleanItem('showCameraMaker', true)) return '';
     return overrideExifMetadata()?.make || this.metadata.make || '';
   }
 
-  /**
-   * Returns the model of the camera that took the photo.
-   * @example 'ILCE-7M3'
-   */
   public get model(): string {
     if (!SafeStorage.getBooleanItem('showCameraModel', true)) return '';
     return overrideExifMetadata()?.model || this.metadata.model || '';
   }
 
-  /**
-   * Returns the lens model of the camera that took the photo.
-   * @example 'FE 24-105mm F4 G OSS'
-   */
   public get lensModel(): string {
     if (!SafeStorage.getBooleanItem('showLensModel', true)) {
       return '';
@@ -110,10 +85,6 @@ class Photo {
     return overrideExifMetadata()?.lensModel || this.metadata.lensModel || '';
   }
 
-  /**
-   * Returns the focal length of the camera that took the photo.
-   * @example '24mm'
-   */
   public get focalLength(): string {
     if (SafeStorage.getBooleanItem('focalLengthRatioMode', false)) {
       const focalLength = parseFloat(overrideExifMetadata()?.focalLength?.replace(' mm', '') || this.metadata?.focalLength?.replace(' mm', '') || '0');
@@ -124,34 +95,18 @@ class Photo {
       : overrideExifMetadata()?.focalLengthIn35mm || this.metadata.focalLengthIn35mm || '';
   }
 
-  /**
-   * Returns the F number of the camera that took the photo.
-   * @example 'F4'
-   */
   public get fNumber(): string {
     return overrideExifMetadata()?.fNumber || this.metadata.fNumber || '';
   }
 
-  /**
-   * Returns the ISO of the camera that took the photo.
-   * @example 'ISO100'
-   */
   public get iso(): string {
     return overrideExifMetadata()?.iso || this.metadata.iso || '';
   }
 
-  /**
-   * Returns the exposure time of the camera that took the photo.
-   * @example '1/100s'
-   */
   public get exposureTime(): string {
     return overrideExifMetadata()?.exposureTime || this.metadata.exposureTime || '';
   }
 
-  /**
-   * Returns the date the photo was taken.
-   * @example '2021-01-01T00:00:00.000+09:00'
-   */
   public get takenAt(): string {
     if (!overrideExifMetadata()?.takenAt && !this.metadata.takenAt) return '';
 

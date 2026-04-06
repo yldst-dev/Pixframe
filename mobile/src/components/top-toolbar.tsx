@@ -5,12 +5,14 @@ import DownloadIcon from '../icons/download.icon';
 import GitHubIcon from '../icons/github.icon';
 import PfLoader from './ui/pf-loader';
 import themes, { useThemeStore } from '../themes';
-import render from '../core/drawing/render';
 import Button from './ui/button';
 import IconButton from './ui/icon-button';
-import JSZip from 'jszip';
 import SettingsIcon from '../icons/settings.icon';
 import ImageIcon from '../icons/image.icon';
+import { createObjectUrl, revokeObjectUrl } from '../core/export/blob';
+import { exportPhotosSequentially } from '../core/export/sequential-photo-export';
+import { resolveThemeOptions } from '../core/export/theme-options';
+import { ZipWriter } from '../core/export/zip';
 
 interface TopToolbarProps {
   isPhotoSidebarOpen: boolean;
@@ -44,72 +46,31 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
                 throw new Error(`Theme "${selectedThemeName}" not found`);
             }
 
-            // Create a Map with all required options and their default values
-            const themeOptions = new Map();
-            
-            // First, set all default values from theme options
-            selectedTheme.options.forEach(option => {
-                themeOptions.set(option.id, option.default);
-            });
-            
-            // Then override with user-configured values if they exist
-            themeStore.option.forEach((value, key) => {
-                if (selectedTheme.options.some(opt => opt.id === key)) {
-                    themeOptions.set(key, value);
-                }
-            });
-
-            // Create a new ZIP file
-            const zip = new JSZip();
-            
-            // Process each photo and add to ZIP
-            for (let i = 0; i < photos.length; i++) {
-                const photo = photos[i];
-                
-                try {
-                    // Update progress
-                    setDownloadProgress({ current: i + 1, total: photos.length });
-                    
-                    // Generate themed image
-                    const canvas = await render(selectedTheme.func, photo, themeOptions, store);
-                    
-                    // Convert canvas to blob
-                    const blob = await new Promise<Blob>((resolve) => {
-                        canvas.toBlob((blob) => {
-                            resolve(blob!);
-                        }, 'image/jpeg', store.quality || 0.95);
-                    });
-                    
-                    // Generate filename with theme name
-                    const fileExtension = photo.file.name.split('.').pop();
-                    const baseFileName = photo.file.name.replace(/\.[^/.]+$/, "");
-                    const themeName = selectedThemeName.replace(/\s+/g, '_').toLowerCase();
-                    const fileName = `${baseFileName}_${themeName}.${store.exportToJpeg ? 'jpg' : fileExtension}`;
-                    
-                    // Add the image to ZIP file
-                    zip.file(fileName, blob);
-                    
-                } catch (error) {
-                    console.error(`Failed to process photo ${i + 1}:`, error);
-                }
+            const themeOptions = resolveThemeOptions(selectedTheme.options, themeStore.option);
+            const zip = new ZipWriter();
+            for await (const file of exportPhotosSequentially({
+                onProgress: (progress) => {
+                    setDownloadProgress({ current: progress.current, total: progress.total });
+                },
+                photos,
+                store,
+                themeFunc: selectedTheme.func,
+                themeName: selectedThemeName,
+                themeOptions,
+            })) {
+                zip.addFile(file);
             }
-            
-            // Generate ZIP file and download
-            const zipBlob = await zip.generateAsync({ type: 'blob' });
-            
-            // Create download link for ZIP file
+            const zipBlob = await zip.finalize();
             const themeName = selectedThemeName.replace(/\s+/g, '_').toLowerCase();
             const zipFileName = `exif_frames_${themeName}_${photos.length}photos.zip`;
             
             const link = document.createElement('a');
-            link.href = URL.createObjectURL(zipBlob);
+            link.href = createObjectUrl(zipBlob);
             link.download = zipFileName;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            
-            // Clean up the object URL
-            URL.revokeObjectURL(link.href);
+            revokeObjectUrl(link.href);
             
         } catch (error) {
             console.error('Download failed:', error);
@@ -172,7 +133,6 @@ const TopToolbar: React.FC<TopToolbarProps> = ({
                 </IconButton>
             </div>
 
-            {/* Download Progress Modal */}
             {showDownloadModal && (
                 <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center">
                     <div className="bg-card border border-border p-8 max-w-sm w-full shadow-2xl flex flex-col items-center">

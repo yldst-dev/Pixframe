@@ -3,7 +3,7 @@ import download from './download';
 
 export interface NativeSaveFile {
   filename: string;
-  data: string;
+  data: Blob | string;
 }
 
 export interface NativeBatchSaveSource {

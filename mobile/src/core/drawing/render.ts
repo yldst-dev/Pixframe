@@ -51,39 +51,74 @@ const collectRequiredFonts = (option: ThemeOptionInput): string[] => {
   return fonts;
 };
 
+type RenderSource = CanvasImageSource & { width: number; height: number };
+
+const loadImageElement = async (file: File): Promise<{ source: RenderSource; dispose: () => void }> => {
+  const image = new Image();
+  const objectUrl = URL.createObjectURL(file);
+  const loadPromise = new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error(`Failed to decode image: ${file.name}`));
+    };
+  });
+
+  image.src = objectUrl;
+
+  try {
+    await loadPromise;
+    if (typeof image.decode === 'function') {
+      await image.decode();
+    }
+    return { source: image as RenderSource, dispose: () => URL.revokeObjectURL(objectUrl) };
+  } catch (error) {
+    URL.revokeObjectURL(objectUrl);
+    throw error;
+  }
+};
+
 const render = async (func: ThemeFunc, photo: Photo, option: ThemeOptionInput, store: Store): Promise<HTMLCanvasElement> => {
   const optionWithThemeDarkMode = applyThemeDarkMode(option, store);
   await ensureFontsLoaded(collectRequiredFonts(optionWithThemeDarkMode));
+  const { source, dispose } = await loadImageElement(photo.file);
+  const renderPhoto = Object.assign(Object.create(Object.getPrototypeOf(photo)), photo, {
+    image: source as unknown as HTMLImageElement,
+  }) as Photo;
 
-  let canvas = func(photo, optionWithThemeDarkMode, store);
+  try {
+    let canvas = func(renderPhoto, optionWithThemeDarkMode, store);
 
-  if (store.fixWatermark && store.watermark) {
-    const context = canvas.getContext('2d')!;
-    const fontSize = 100;
-    context.fillStyle = '#ffffff';
-    context.shadowColor = '#000000';
-    context.shadowBlur = 10;
-    context.lineWidth = 5;
-    context.font = `normal 500 ${fontSize}px Barlow`;
-    context.textAlign = 'right';
-    context.textBaseline = 'bottom';
-    context.fillText(store.watermark, canvas.width - fontSize / 2, canvas.height - fontSize / 2);
-    context.shadowBlur = 0;
-  }
-
-  if (store.enableFixImageWidth && store.fixImageWidth) {
-    if (canvas.width > canvas.height) {
-      const targetWidth = store.fixImageWidth > 4096 ? 4096 : store.fixImageWidth;
-      const targetHeight = (targetWidth * canvas.height) / canvas.width;
-      canvas = resize(canvas, targetWidth, targetHeight);
-    } else {
-      const targetHeight = store.fixImageWidth > 4096 ? 4096 : store.fixImageWidth;
-      const targetWidth = (targetHeight * canvas.width) / canvas.height;
-      canvas = resize(canvas, targetWidth, targetHeight);
+    if (store.fixWatermark && store.watermark) {
+      const context = canvas.getContext('2d')!;
+      const fontSize = 100;
+      context.fillStyle = '#ffffff';
+      context.shadowColor = '#000000';
+      context.shadowBlur = 10;
+      context.lineWidth = 5;
+      context.font = `normal 500 ${fontSize}px Barlow`;
+      context.textAlign = 'right';
+      context.textBaseline = 'bottom';
+      context.fillText(store.watermark, canvas.width - fontSize / 2, canvas.height - fontSize / 2);
+      context.shadowBlur = 0;
     }
-  }
 
-  return canvas;
+    if (store.enableFixImageWidth && store.fixImageWidth) {
+      if (canvas.width > canvas.height) {
+        const targetWidth = store.fixImageWidth > 4096 ? 4096 : store.fixImageWidth;
+        const targetHeight = (targetWidth * canvas.height) / canvas.width;
+        canvas = resize(canvas, targetWidth, targetHeight);
+      } else {
+        const targetHeight = store.fixImageWidth > 4096 ? 4096 : store.fixImageWidth;
+        const targetWidth = (targetHeight * canvas.width) / canvas.height;
+        canvas = resize(canvas, targetWidth, targetHeight);
+      }
+    }
+
+    return canvas;
+  } finally {
+    dispose();
+  }
 };
 
 export default render;

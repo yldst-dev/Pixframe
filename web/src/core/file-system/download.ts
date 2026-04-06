@@ -1,12 +1,19 @@
 import { Media } from '@capacitor-community/media';
 import { Capacitor } from '@capacitor/core';
 import saveAs from 'file-saver';
+import { blobToDataUrl } from '../export/blob';
 
-/**
- * Download base64 data as a file.
- */
-export default async function download(filename: string, data: string): Promise<void> {
-  // Create an album if it doesn't exist on native platforms. (Android, iOS)
+type DownloadData = Blob | string;
+
+const resolveNativePath = async (data: DownloadData): Promise<string> => {
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  return await blobToDataUrl(data);
+};
+
+export default async function download(filename: string, data: DownloadData): Promise<void> {
   if (Capacitor.isNativePlatform()) {
     const { albums } = await Media.getAlbums();
     if (!albums.map((album) => album.name).includes('EXIF Frame')) {
@@ -14,23 +21,26 @@ export default async function download(filename: string, data: string): Promise<
     }
   }
 
-  // Save the file based on the platform.
   switch (Capacitor.getPlatform()) {
-    case 'ios':
+    case 'ios': {
+      const path = await resolveNativePath(data);
       await Media.savePhoto({
         fileName: filename,
-        path: data,
+        path,
         albumIdentifier: (await Media.getAlbums()).albums.find((album) => album.name === 'EXIF Frame')?.identifier,
       });
       break;
+    }
 
-    case 'android':
+    case 'android': {
+      const path = await resolveNativePath(data);
       await Media.savePhoto({
         fileName: Math.random().toString(36).substring(7) + '_' + filename,
-        path: data,
+        path,
         albumIdentifier: (await Media.getAlbums()).albums.find((album) => album.name === 'EXIF Frame')?.identifier,
       });
       break;
+    }
 
     case 'web':
       saveAs(data, filename);

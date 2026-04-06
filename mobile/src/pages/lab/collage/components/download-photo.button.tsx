@@ -32,7 +32,7 @@ const DownloadPhotoButton = () => {
           groups.push(photos.slice(i, i + numberOfRow * numberOfColumn));
         }
 
-        const resolveFileName = (index: number): string => (exportToJpeg ? `collage-${index}.jpg` : `collage-${index}.webp`);
+        const resolveFileName = (index: number): string => (exportToJpeg ? `collage-${index}.jpg` : `collage-${index}.png`);
 
         try {
           if (Capacitor.isNativePlatform()) {
@@ -45,7 +45,7 @@ const DownloadPhotoButton = () => {
                   const canvas = SIMPLE_FUNC(group, { backgroundColor, ratio, numberOfRow, numberOfColumn, paddingTop, paddingBottom, paddingLeft, paddingRight, marginEach });
                   try {
                     const filename = resolveFileName(index);
-                    const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/webp', quality });
+                    const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality });
                     return { filename, data };
                   } finally {
                     free(canvas);
@@ -75,26 +75,32 @@ const DownloadPhotoButton = () => {
               showToast(t('root.successfully-downloaded-in-gallery'));
             }
           } else if (groups.length === 1) {
-            setLoadingProgress({ current: 1, total: 1, currentFileName: exportToJpeg ? 'collage.jpg' : 'collage.webp' });
+            setLoadingProgress({ current: 1, total: 1, currentFileName: exportToJpeg ? 'collage.jpg' : 'collage.png' });
             const canvas = SIMPLE_FUNC(groups[0], { backgroundColor, ratio, numberOfRow, numberOfColumn, paddingTop, paddingBottom, paddingLeft, paddingRight, marginEach });
-            const filename = exportToJpeg ? 'collage.jpg' : 'collage.webp';
-            const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/webp', quality });
-            free(canvas);
-            await download(filename, data);
+            try {
+              const filename = exportToJpeg ? 'collage.jpg' : 'collage.png';
+              const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality });
+              await download(filename, data);
+            } finally {
+              free(canvas);
+            }
           } else {
-            const files: { filename: string; data: string }[] = [];
+            const files: { filename: string; data: Blob }[] = [];
             for (let index = 0; index < groups.length; index += 1) {
               const group = groups[index];
               setLoadingProgress({
                 current: index + 1,
                 total: groups.length,
-                currentFileName: exportToJpeg ? `collage-${index}.jpg` : `collage-${index}.webp`,
+                currentFileName: exportToJpeg ? `collage-${index}.jpg` : `collage-${index}.png`,
               });
               const canvas = SIMPLE_FUNC(group, { backgroundColor, ratio, numberOfRow, numberOfColumn, paddingTop, paddingBottom, paddingLeft, paddingRight, marginEach });
-              const filename = exportToJpeg ? `collage-${index}.jpg` : `collage-${index}.webp`;
-              const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/webp', quality });
-              free(canvas);
-              files.push({ filename, data });
+              try {
+                const filename = exportToJpeg ? `collage-${index}.jpg` : `collage-${index}.png`;
+                const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality });
+                files.push({ filename, data });
+              } finally {
+                free(canvas);
+              }
             }
             const zip = await compress(files);
             await download('images.zip', zip);

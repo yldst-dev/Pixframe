@@ -2,48 +2,18 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store';
 import AddIcon from '../icons/add.icon';
-import Photo from '../core/photo';
 import Button from './ui/button';
 
 interface PhotoSidebarProps {
   selectedIndex: number | null;
   onSelectPhoto: (index: number) => void;
   onClose: () => void;
+  onAddPhotos: (files: File[] | FileList) => Promise<void>;
 }
 
-const PhotoSidebar: React.FC<PhotoSidebarProps> = ({ selectedIndex, onSelectPhoto }) => {
+const PhotoSidebar: React.FC<PhotoSidebarProps> = ({ selectedIndex, onSelectPhoto, onAddPhotos }) => {
   const { t } = useTranslation();
-  const { photos, setPhotos, setLoading, setLoadingProgress, setOpenedAddPhotoErrorDialog, clearAllPhotos } = useStore();
-
-  const handleAddPhotos = async (files: FileList) => {
-    const fileArray = Array.from(files);
-    if (fileArray.length === 0) return;
-    setLoading(true);
-    setLoadingProgress({ current: 0, total: fileArray.length, currentFileName: fileArray[0]?.name || '' });
-
-    try {
-      const newPhotos: Photo[] = [];
-      for (let i = 0; i < fileArray.length; i++) {
-        const file = fileArray[i];
-        // Use 1-based "current" so the fill is visible even for single-file imports.
-        setLoadingProgress({ current: i + 1, total: fileArray.length, currentFileName: file.name });
-        try {
-          const photo = await Photo.create(file);
-          newPhotos.push(photo);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-
-      if (newPhotos.length === 0) {
-        setOpenedAddPhotoErrorDialog(true);
-      } else {
-        setPhotos([...photos, ...newPhotos]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { photos, queuedFiles, setPhotos, clearAllPhotos } = useStore();
 
   const handleDeletePhoto = (e: React.MouseEvent, indexToDelete: number) => {
     e.stopPropagation(); 
@@ -66,7 +36,7 @@ const PhotoSidebar: React.FC<PhotoSidebarProps> = ({ selectedIndex, onSelectPhot
     input.onchange = (e) => {
       const files = (e.target as HTMLInputElement).files;
       if (files) {
-        handleAddPhotos(files);
+        void onAddPhotos(files);
       }
     };
     input.click();
@@ -74,7 +44,6 @@ const PhotoSidebar: React.FC<PhotoSidebarProps> = ({ selectedIndex, onSelectPhot
 
   return (
     <div className="w-80 h-full flex flex-col bg-background">
-      {/* Header */}
       <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
         <h3 className="font-bold uppercase tracking-tight text-foreground">
           {photos.length === 0 
@@ -82,17 +51,23 @@ const PhotoSidebar: React.FC<PhotoSidebarProps> = ({ selectedIndex, onSelectPhot
             : `${photos.length} PHOTOS`
           }
         </h3>
-        {photos.length > 0 && (
-           <button 
-             onClick={clearAllPhotos}
-             className="text-xs text-muted-foreground hover:text-destructive uppercase font-medium"
-           >
-             Clear All
-           </button>
-        )}
+        <div className="flex items-center gap-3">
+          {queuedFiles.length > 0 && (
+            <span className="text-[11px] uppercase tracking-wide text-amber-600">
+              {t('queue.badge', { count: queuedFiles.length })}
+            </span>
+          )}
+          {photos.length > 0 && (
+             <button 
+               onClick={clearAllPhotos}
+               className="text-xs text-muted-foreground hover:text-destructive uppercase font-medium"
+             >
+               Clear All
+             </button>
+          )}
+        </div>
       </div>
 
-      {/* Add Photos Button */}
       <div className="p-4 border-b border-border shrink-0">
         <Button
           variant="primary"
@@ -104,7 +79,6 @@ const PhotoSidebar: React.FC<PhotoSidebarProps> = ({ selectedIndex, onSelectPhot
         </Button>
       </div>
 
-      {/* Photos List */}
       <div className="flex-1 overflow-y-auto">
         {photos.length === 0 ? (
           <div className="h-full flex items-center justify-center p-8 opacity-50">
@@ -126,7 +100,6 @@ const PhotoSidebar: React.FC<PhotoSidebarProps> = ({ selectedIndex, onSelectPhot
                   }
                 `}
               >
-                {/* Thumbnail */}
                 <div className="w-16 h-16 bg-muted flex-shrink-0 overflow-hidden border border-border relative">
                   <img 
                     src={photo.thumbnail} 
@@ -135,7 +108,6 @@ const PhotoSidebar: React.FC<PhotoSidebarProps> = ({ selectedIndex, onSelectPhot
                   />
                 </div>
 
-                {/* Info */}
                 <div className="ml-3 flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">
                     {photo.file.name}
@@ -145,7 +117,6 @@ const PhotoSidebar: React.FC<PhotoSidebarProps> = ({ selectedIndex, onSelectPhot
                   </p>
                 </div>
 
-                {/* Delete Button */}
                 <button
                   onClick={(e) => handleDeletePhoto(e, index)}
                   className="opacity-0 group-hover:opacity-100 absolute right-2 top-2 p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
@@ -156,7 +127,6 @@ const PhotoSidebar: React.FC<PhotoSidebarProps> = ({ selectedIndex, onSelectPhot
                   </svg>
                 </button>
                 
-                {/* Active Indicator */}
                 {selectedIndex === index && (
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
                 )}

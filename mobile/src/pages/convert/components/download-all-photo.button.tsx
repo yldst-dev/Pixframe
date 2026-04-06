@@ -42,7 +42,7 @@ const DownloadAllPhotoButton = () => {
           setLoadingProgress({ current: 0, total: photos.length, currentFileName: photos[0]?.file.name || '' });
           await new Promise((resolve) => setTimeout(resolve, 100));
 
-          const resolveFileName = (index: number): string => photos[index].file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'webp'}`);
+          const resolveFileName = (index: number): string => photos[index].file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'png'}`);
 
           try {
             if (Capacitor.isNativePlatform()) {
@@ -55,7 +55,7 @@ const DownloadAllPhotoButton = () => {
                     const canvas = await render(func!, photo, input, store);
                     try {
                       const filename = resolveFileName(index);
-                      const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/webp', quality });
+                      const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality });
                       return { filename, data };
                     } finally {
                       free(canvas);
@@ -85,15 +85,18 @@ const DownloadAllPhotoButton = () => {
                 showToast(t('root.successfully-downloaded-in-gallery'));
               }
             } else {
-              const files: { filename: string; data: string }[] = [];
+              const files: { filename: string; data: Blob }[] = [];
               for (let i = 0; i < photos.length; i += 1) {
                 const photo = photos[i];
                 setLoadingProgress({ current: i + 1, total: photos.length, currentFileName: photo.file.name });
                 const canvas = await render(func!, photo, input, store);
-                const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'webp'}`);
-                const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/webp', quality });
-                free(canvas);
-                files.push({ filename, data });
+                try {
+                  const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'png'}`);
+                  const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality });
+                  files.push({ filename, data });
+                } finally {
+                  free(canvas);
+                }
               }
               const zip = await compress(files);
               await download('images.zip', zip);

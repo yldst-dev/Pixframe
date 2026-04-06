@@ -16,6 +16,7 @@ const revokePhotoUrls = (photos: Photo[]) => {
 
 export interface PhotoState {
   photos: Photo[];
+  queuedFiles: File[];
   preview: Photo | null;
   previewPhoto: Photo | null;
   overrideMetadataTarget: Photo | null;
@@ -24,8 +25,13 @@ export interface PhotoState {
 export interface PhotoActions {
   setPhotos: (photos: Photo[]) => void;
   addPhoto: (photo: Photo) => void;
+  addPhotos: (photos: Photo[]) => void;
   removePhoto: (index: number) => void;
   clearAllPhotos: () => void;
+  setQueuedFiles: (files: File[]) => void;
+  enqueueFiles: (files: File[]) => void;
+  takeQueuedFiles: (count: number) => File[];
+  clearQueuedFiles: () => void;
   setPreview: (preview: Photo | null) => void;
   setPreviewPhoto: (previewPhoto: Photo | null) => void;
   setOverrideMetadataTarget: (target: Photo) => void;
@@ -35,6 +41,7 @@ export type PhotoStore = PhotoState & PhotoActions;
 
 export const usePhotoStore = create<PhotoStore>((set) => ({
   photos: [],
+  queuedFiles: [],
   preview: null,
   previewPhoto: null,
   overrideMetadataTarget: null,
@@ -52,6 +59,10 @@ export const usePhotoStore = create<PhotoStore>((set) => ({
     set((state) => ({
       photos: [...state.photos, photo],
     })),
+  addPhotos: (photos: Photo[]) =>
+    set((state) => ({
+      photos: [...state.photos, ...photos],
+    })),
   removePhoto: (index: number) =>
     set((state) => {
       const removedPhoto = state.photos[index];
@@ -67,8 +78,24 @@ export const usePhotoStore = create<PhotoStore>((set) => ({
       if (state.photos.length > 0) {
         revokePhotoUrls(state.photos);
       }
-      return { photos: [] };
+      return { photos: [], queuedFiles: [] };
     }),
+  setQueuedFiles: (files: File[]) => set({ queuedFiles: files }),
+  enqueueFiles: (files: File[]) =>
+    set((state) => ({
+      queuedFiles: [...state.queuedFiles, ...files],
+    })),
+  takeQueuedFiles: (count: number) => {
+    let queuedFiles: File[] = [];
+    set((state) => {
+      queuedFiles = state.queuedFiles.slice(0, count);
+      return {
+        queuedFiles: state.queuedFiles.slice(count),
+      };
+    });
+    return queuedFiles;
+  },
+  clearQueuedFiles: () => set({ queuedFiles: [] }),
   setPreview: (preview: Photo | null) => set({ preview }),
   setPreviewPhoto: (previewPhoto: Photo | null) => set({ previewPhoto }),
   setOverrideMetadataTarget: (target: Photo) => set({ overrideMetadataTarget: target }),

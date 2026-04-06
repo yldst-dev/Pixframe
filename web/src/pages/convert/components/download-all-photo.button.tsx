@@ -42,22 +42,26 @@ const DownloadAllPhotoButton = () => {
           if (Capacitor.isNativePlatform()) {
             for (const photo of photos) {
               const canvas = await render(func!, photo, input, store);
-              const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'webp'}`);
-              const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/webp', quality });
-              free(canvas);
-              await download(filename, data);
+              try {
+                const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'png'}`);
+                const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality });
+                await download(filename, data);
+              } finally {
+                free(canvas);
+              }
             }
           } else {
-            const files: { filename: string; data: string }[] = [];
-            await Promise.all(
-              photos.map(async (photo) => {
-                const canvas = await render(func!, photo, input, store);
-                const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'webp'}`);
-                const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/webp', quality });
-                free(canvas);
+            const files: { filename: string; data: Blob }[] = [];
+            for (const photo of photos) {
+              const canvas = await render(func!, photo, input, store);
+              try {
+                const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'png'}`);
+                const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality });
                 files.push({ filename, data });
-              })
-            );
+              } finally {
+                free(canvas);
+              }
+            }
             const zip = await compress(files);
             await download('images.zip', zip);
           }

@@ -153,6 +153,13 @@ export interface LoadingProgress {
   currentFileName: string;
 }
 
+export interface PhotoQueueNotice {
+  acceptedCount: number;
+  queuedCount: number;
+  queueTotal: number;
+  activeLimit: number;
+}
+
 /**
  * Store state interface (partial - to be extended)
  */
@@ -182,8 +189,10 @@ export interface StoreState {
   selectedThemeName: string;
   themeDarkMode: boolean;
   photos: Photo[];
+  queuedFiles: File[];
   loading: boolean;
   loadingProgress: LoadingProgress;
+  photoQueueNotice: PhotoQueueNotice | null;
   overrideMetadataPopup: boolean;
   overrideMetadataTarget: Photo | null;
   fixWatermark: boolean;
@@ -231,11 +240,17 @@ export interface StoreActions {
   setThemeDarkMode: (themeDarkMode: boolean) => void;
   setPhotos: (photos: Photo[]) => void;
   addPhoto: (photo: Photo) => void;
+  addPhotos: (photos: Photo[]) => void;
   removePhoto: (index: number) => void;
   clearAllPhotos: () => void;
+  setQueuedFiles: (files: File[]) => void;
+  enqueueFiles: (files: File[]) => void;
+  takeQueuedFiles: (count: number) => File[];
+  clearQueuedFiles: () => void;
   setLoading: (loading: boolean) => void;
   setLoadingProgress: (progress: LoadingProgress) => void;
   resetLoadingProgress: () => void;
+  setPhotoQueueNotice: (notice: PhotoQueueNotice | null) => void;
   setOverrideMetadataPopup: (opened: boolean) => void;
   setOverrideMetadataTarget: (target: Photo) => void;
   setFixWatermark: (fixWatermark: boolean) => void;

@@ -31,28 +31,35 @@ const DownloadPhotoButton = () => {
         if (Capacitor.isNativePlatform()) {
           for (const group of groups) {
             const canvas = SIMPLE_FUNC(group, { backgroundColor, ratio, numberOfRow, numberOfColumn, paddingTop, paddingBottom, paddingLeft, paddingRight, marginEach });
-            const filename = exportToJpeg ? 'collage.jpg' : 'collage.webp';
-            const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/webp', quality });
-            free(canvas);
-            await download(filename, data);
+            try {
+              const filename = exportToJpeg ? 'collage.jpg' : 'collage.png';
+              const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality });
+              await download(filename, data);
+            } finally {
+              free(canvas);
+            }
           }
         } else if (groups.length === 1) {
           const canvas = SIMPLE_FUNC(groups[0], { backgroundColor, ratio, numberOfRow, numberOfColumn, paddingTop, paddingBottom, paddingLeft, paddingRight, marginEach });
-          const filename = exportToJpeg ? 'collage.jpg' : 'collage.webp';
-          const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/webp', quality });
-          free(canvas);
-          await download(filename, data);
+          try {
+            const filename = exportToJpeg ? 'collage.jpg' : 'collage.png';
+            const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality });
+            await download(filename, data);
+          } finally {
+            free(canvas);
+          }
         } else {
-          const files: { filename: string; data: string }[] = [];
-          await Promise.all(
-            groups.map(async (group, index) => {
-              const canvas = SIMPLE_FUNC(group, { backgroundColor, ratio, numberOfRow, numberOfColumn, paddingTop, paddingBottom, paddingLeft, paddingRight, marginEach });
-              const filename = exportToJpeg ? `collage-${index}.jpg` : `collage-${index}.webp`;
-              const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/webp', quality });
-              free(canvas);
+          const files: { filename: string; data: Blob }[] = [];
+          for (const [index, group] of groups.entries()) {
+            const canvas = SIMPLE_FUNC(group, { backgroundColor, ratio, numberOfRow, numberOfColumn, paddingTop, paddingBottom, paddingLeft, paddingRight, marginEach });
+            try {
+              const filename = exportToJpeg ? `collage-${index}.jpg` : `collage-${index}.png`;
+              const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality });
               files.push({ filename, data });
-            })
-          );
+            } finally {
+              free(canvas);
+            }
+          }
           const zip = await compress(files);
           await download('images.zip', zip);
         }

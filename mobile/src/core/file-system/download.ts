@@ -1,11 +1,13 @@
 import { Media } from '@capacitor-community/media';
 import { Capacitor } from '@capacitor/core';
 import saveAs from 'file-saver';
+import { blobToDataUrl } from '../export/blob';
 
 const ALBUM_NAME = 'EXIF Frame';
 let albumIdentifierCache: string | null = null;
 let androidLastStamp = 0;
 let androidStampSequence = 0;
+type DownloadData = Blob | string;
 
 async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
@@ -74,9 +76,18 @@ function resolveNativeFilename(filename: string): string {
   return filename;
 }
 
-async function saveNativePhoto(filename: string, data: string): Promise<void> {
+async function resolveNativePath(data: DownloadData): Promise<string> {
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  return await blobToDataUrl(data);
+}
+
+async function saveNativePhoto(filename: string, data: DownloadData): Promise<void> {
   const platform = Capacitor.getPlatform();
   const albumIdentifier = platform === 'android' ? await resolveAlbumIdentifier() : undefined;
+  const path = await resolveNativePath(data);
   let lastError: unknown = null;
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -84,12 +95,12 @@ async function saveNativePhoto(filename: string, data: string): Promise<void> {
       if (platform === 'android') {
         await Media.savePhoto({
           fileName: resolveNativeFilename(filename),
-          path: data,
+          path,
           albumIdentifier,
         });
       } else {
         await Media.savePhoto({
-          path: data,
+          path,
         });
       }
       return;
@@ -102,7 +113,7 @@ async function saveNativePhoto(filename: string, data: string): Promise<void> {
   throw lastError instanceof Error ? lastError : new Error('Failed to save photo to native gallery');
 }
 
-export default async function download(filename: string, data: string): Promise<void> {
+export default async function download(filename: string, data: DownloadData): Promise<void> {
   if (!Capacitor.isNativePlatform()) {
     saveAs(data, filename);
     return;

@@ -6,19 +6,20 @@ import PhotoSidebar from './photo-sidebar';
 import ImagePreview from './settings/image-preview';
 import TopToolbar from './top-toolbar';
 import DropZone from './drop-zone';
+import PhotoQueueDialog from './photo-queue-dialog';
 import Loading from '../pages/convert/components/loading';
 import AddPhotoErrorDialog from '../pages/convert/components/add-photo-error.dialog';
-import Photo from '../core/photo';
+import { usePhotoIntake } from '../hooks/use-photo-intake';
 
 const DesktopLayout = () => {
   const { t } = useTranslation();
-  const { photos, setPhotos, setLoading, setLoadingProgress, setOpenedAddPhotoErrorDialog } = useStore();
+  const { photos } = useStore();
   const [isSettingsPanelOpen, setIsSettingsPanelOpen] = useState(true);
   const [isPhotoSidebarOpen, setIsPhotoSidebarOpen] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const { addFiles } = usePhotoIntake();
 
-  // Auto-select first photo when photos are added, and reset when all removed
   useEffect(() => {
     if (photos.length > 0 && (selectedImageIndex === null || selectedImageIndex >= photos.length)) {
       setSelectedImageIndex(0);
@@ -27,35 +28,6 @@ const DesktopLayout = () => {
     }
   }, [photos.length, selectedImageIndex]);
 
-  const handleAddPhotos = useCallback(async (files: File[]) => {
-    if (files.length === 0) return;
-    setLoading(true);
-    setLoadingProgress({ current: 0, total: files.length, currentFileName: files[0]?.name || '' });
-
-    try {
-      const newPhotos: Photo[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        // Use 1-based "current" so the fill is visible even for single-file imports.
-        setLoadingProgress({ current: i + 1, total: files.length, currentFileName: file.name });
-        try {
-          const photo = await Photo.create(file);
-          newPhotos.push(photo);
-        } catch (e) {
-          console.error(e);
-        }
-      }
-
-      if (newPhotos.length === 0) {
-        setOpenedAddPhotoErrorDialog(true);
-      } else {
-        setPhotos([...photos, ...newPhotos]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [photos, setPhotos, setLoading, setLoadingProgress, setOpenedAddPhotoErrorDialog]);
-
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
@@ -63,7 +35,6 @@ const DesktopLayout = () => {
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    // Only hide drag overlay if leaving the main container
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setIsDragOver(false);
     }
@@ -74,18 +45,15 @@ const DesktopLayout = () => {
     setIsDragOver(false);
     
     const files = Array.from(e.dataTransfer.files).filter(file => {
-      // Check for standard image types
       if (file.type.startsWith('image/')) return true;
-      
-      // Check for HEIC/HEIF files by extension (since browsers may not recognize the MIME type)
       const fileName = file.name.toLowerCase();
       return fileName.endsWith('.heic') || fileName.endsWith('.heif');
     });
     
     if (files.length > 0) {
-      handleAddPhotos(files);
+      void addFiles(files);
     }
-  }, [handleAddPhotos]);
+  }, [addFiles]);
 
   return (
     <div 
@@ -94,7 +62,6 @@ const DesktopLayout = () => {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {/* Drag Overlay */}
       {isDragOver && (
         <div className="absolute inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center border-4 border-primary border-dashed m-4">
           <div className="bg-card p-12 border border-primary shadow-none">
@@ -117,7 +84,6 @@ const DesktopLayout = () => {
         </div>
       )}
 
-      {/* Top Toolbar */}
       <TopToolbar 
         isPhotoSidebarOpen={isPhotoSidebarOpen}
         setIsPhotoSidebarOpen={setIsPhotoSidebarOpen}
@@ -125,28 +91,25 @@ const DesktopLayout = () => {
         setIsSettingsPanelOpen={setIsSettingsPanelOpen}
       />
 
-      {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Left Panel - Photo Sidebar */}
         {isPhotoSidebarOpen && (
           <div className="border-r border-border flex-shrink-0 z-20 bg-background h-full">
             <PhotoSidebar 
               selectedIndex={selectedImageIndex}
               onSelectPhoto={(index) => setSelectedImageIndex(index === -1 ? null : index)}
               onClose={() => setIsPhotoSidebarOpen(false)}
+              onAddPhotos={addFiles}
             />
           </div>
         )}
         
-        {/* Center Panel - Preview Main Area */}
         <div className="flex-1 flex flex-col min-w-0 bg-muted/30 relative">
-          {/* Grid Background Pattern */}
           <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
                style={{ backgroundImage: 'linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
           </div>
 
           {photos.length === 0 ? (
-            <DropZone />
+            <DropZone onAddPhotos={addFiles} />
           ) : selectedImageIndex !== null ? (
             <ImagePreview selectedPhoto={photos[selectedImageIndex]} />
           ) : (
@@ -170,7 +133,6 @@ const DesktopLayout = () => {
           )}
         </div>
 
-        {/* Right Panel - Settings */}
         {isSettingsPanelOpen && (
           <div className="w-80 border-l border-border bg-background flex flex-col z-20 h-full shadow-[-1px_0_0_0_var(--border)]">
             <SettingsPanel 
@@ -181,9 +143,9 @@ const DesktopLayout = () => {
         )}
       </div>
 
-      {/* Loading and Error Components */}
       <Loading />
       <AddPhotoErrorDialog />
+      <PhotoQueueDialog />
     </div>
   );
 };

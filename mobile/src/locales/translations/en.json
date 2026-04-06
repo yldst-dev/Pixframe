@@ -46,6 +46,10 @@
   "root.bug-report": "Bug Report",
   "root.feature-request": "Feature Request",
   "root.loaded-photos": "Loaded Photos",
+  "queue.badge": "Queue {{count}}",
+  "queue.notice.title": "Photo Queue",
+  "queue.notice.body": "Only {{activeLimit}} photos are loaded immediately. {{acceptedCount}} photo(s) were added now and {{queuedCount}} photo(s) were moved to the queue.",
+  "queue.notice.footer": "{{queueTotal}} photo(s) are currently waiting in the queue. They will load automatically when space becomes available.",
 
   "root.sponsor-description": "We would like to introduce you to those who have supported us through a temporary sponsorship function from May 2024 to November 2024. The amount of money you gave us was used to extend the Apple developer account and purchase coffee to help us develop it. We sincerely thank you for your support.",
   "root.sponsors": "Sponsors",

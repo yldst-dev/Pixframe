@@ -8,6 +8,13 @@ export interface LoadingProgress {
   currentFileName: string;
 }
 
+export interface PhotoQueueNotice {
+  acceptedCount: number;
+  queuedCount: number;
+  queueTotal: number;
+  activeLimit: number;
+}
+
 const DEFAULT_LOADING_PROGRESS: LoadingProgress = {
   current: 0,
   total: 0,
@@ -26,6 +33,7 @@ export interface UIState {
   overrideMetadataPopup: boolean;
   loading: boolean;
   loadingProgress: LoadingProgress;
+  photoQueueNotice: PhotoQueueNotice | null;
   darkMode: boolean;
 }
 
@@ -42,6 +50,7 @@ export interface UIActions {
   setLoading: (loading: boolean) => void;
   setLoadingProgress: (loadingProgress: LoadingProgress | number) => void;
   resetLoadingProgress: () => void;
+  setPhotoQueueNotice: (notice: PhotoQueueNotice | null) => void;
   setDarkMode: (darkMode: boolean) => void;
 }
 
@@ -59,6 +68,7 @@ export const useUIStore = create<UIStore>((set) => ({
   overrideMetadataPopup: false,
   loading: false,
   loadingProgress: DEFAULT_LOADING_PROGRESS,
+  photoQueueNotice: null,
   darkMode: SafeStorage.getBooleanItem('darkMode', false),
 
   setTabIndex: (tabIndex: number) => set({ tabIndex }),
@@ -83,6 +93,7 @@ export const useUIStore = create<UIStore>((set) => ({
           : loadingProgress,
     }),
   resetLoadingProgress: () => set({ loadingProgress: DEFAULT_LOADING_PROGRESS }),
+  setPhotoQueueNotice: (notice: PhotoQueueNotice | null) => set({ photoQueueNotice: notice }),
   setDarkMode: (darkMode: boolean) =>
     set(() => {
       try {
