@@ -13,7 +13,16 @@ const QualityListItem = () => {
       after={
         <>
           {quality}%&nbsp;
-          <Range value={quality} min={1} max={100} step={1} onChange={(e) => setQuality(e.target.value)} />
+          <Range
+            value={quality}
+            min={1}
+            max={100}
+            step={1}
+            onChange={(e) => {
+              const nextValue = Number.parseFloat(e.target.value);
+              setQuality(Number.isFinite(nextValue) ? nextValue : quality);
+            }}
+          />
         </>
       }
     />

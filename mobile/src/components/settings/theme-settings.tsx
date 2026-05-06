@@ -8,6 +8,7 @@ import IconButton from '../ui/icon-button';
 import { CgMoon, CgSun } from 'react-icons/cg';
 import { useDebouncedCallback } from '../../hooks/useDebounce';
 import { ThemeSettingsProps, NumberThemeOption, RangeSliderThemeOption, SelectThemeOption } from '../../types';
+import { normalizeIntegerInput, parseDecimalInput, parseIntegerInput } from '../../utils/numeric-input';
 
 const AVAILABLE_TAGS = [
   'MAKER', 'BODY', 'LENS', 'ISO', 'MM', 'F', 'SEC', 'TAKEN_AT'
@@ -34,7 +35,6 @@ const TemplateBuilder: React.FC<{
   const insertTag = (tag: string) => {
     const input = inputRef.current;
     if (!input) {
-      // Fallback if ref is missing (shouldn't happen)
       onChange(value + `{${tag}}`);
       return;
     }
@@ -45,10 +45,9 @@ const TemplateBuilder: React.FC<{
     const newValue = value.substring(0, start) + `{${tag}}` + value.substring(end);
     onChange(newValue);
     
-    // Restore focus and move cursor after inserted tag
     setTimeout(() => {
       input.focus();
-      const newCursorPos = start + tag.length + 2; // +2 for {} braces
+      const newCursorPos = start + tag.length + 2;
       input.setSelectionRange(newCursorPos, newCursorPos);
     }, 0);
   };
@@ -91,7 +90,6 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isMobile = false }) => {
   const selectedTheme = themes.find(theme => theme.name === selectedThemeName);
   const themeDarkModeSupported = THEME_DARK_MODE_SUPPORTED_THEMES.has(selectedThemeName);
 
-  // Local state to handle immediate UI updates while debouncing the actual store update
   const [localOptions, setLocalOptions] = React.useState<Map<string, string | number | boolean>>(new Map());
 
   const debouncedSetOption = useDebouncedCallback((key: string, value: string | number | boolean) => {
@@ -108,6 +106,15 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isMobile = false }) => {
     debouncedSetOption(key, value);
   }, [debouncedSetOption]);
 
+  const handleNumberOptionInput = useCallback((key: string, value: string) => {
+    const normalizedValue = normalizeIntegerInput(value);
+    setLocalOptions(prev => {
+      const newMap = new Map(prev);
+      newMap.set(key, normalizedValue);
+      return newMap;
+    });
+  }, []);
+
   React.useEffect(() => {
     setLocalOptions(new Map());
   }, [selectedThemeName]);
@@ -119,6 +126,28 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isMobile = false }) => {
     return themeOptions.get(optionId) ?? defaultValue;
   }, [localOptions, themeOptions]);
 
+  const getNumberInputValue = useCallback((optionId: string, defaultValue: number) => {
+    const value = getOptionValue(optionId, defaultValue);
+    if (typeof value === 'string') return normalizeIntegerInput(value);
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    return String(defaultValue);
+  }, [getOptionValue]);
+
+  const commitNumberOption = useCallback((option: NumberThemeOption) => {
+    const value = parseIntegerInput(getNumberInputValue(option.id, option.default), option.default, option.min, option.max);
+    setLocalOptions(prev => {
+      const newMap = new Map(prev);
+      newMap.set(option.id, value);
+      return newMap;
+    });
+    setOption(option.id, value);
+  }, [getNumberInputValue, setOption]);
+
+  const handleRangeOptionChange = useCallback((option: RangeSliderThemeOption, inputValue: string) => {
+    const currentValue = getOptionValue(option.id, option.default);
+    const fallback = typeof currentValue === 'number' && Number.isFinite(currentValue) ? currentValue : option.default;
+    handleOptionChange(option.id, parseDecimalInput(inputValue, fallback, option.min, option.max));
+  }, [getOptionValue, handleOptionChange]);
 
   const handleThemeSelect = useCallback((themeName: string) => {
     setLocalOptions(new Map());
@@ -139,7 +168,6 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isMobile = false }) => {
 
   return (
     <div className="space-y-8 pb-8">
-      {/* Theme Selection - Only show on Desktop */}
       {!isMobile && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -208,7 +236,6 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isMobile = false }) => {
         </div>
       )}
 
-      {/* Theme Customization */}
       {selectedTheme && selectedTheme.options.length > 0 && (
         <div className="space-y-4 pt-4 border-t border-border">
           <div className="flex items-center justify-between">
@@ -277,12 +304,18 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isMobile = false }) => {
                 
                 {option.type === 'number' && (
                   <input
-                    type="number"
-                    value={getOptionValue(option.id, option.default) as number}
-                    onChange={(e) => handleOptionChange(option.id, Number(e.target.value))}
-                    min={(option as NumberThemeOption).min}
-                    max={(option as NumberThemeOption).max}
-                    step={(option as NumberThemeOption).step}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="off"
+                    value={getNumberInputValue(option.id, option.default as number)}
+                    onChange={(e) => handleNumberOptionInput(option.id, e.target.value)}
+                    onBlur={() => commitNumberOption(option as NumberThemeOption)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
+                    }}
                     placeholder={option.id.includes('FONT_SIZE') 
                       ? t('theme.option.number.font-size', 'px') 
                       : option.id.includes('PADDING') 
@@ -323,7 +356,7 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isMobile = false }) => {
                       max={(option as RangeSliderThemeOption).max}
                       step={(option as RangeSliderThemeOption).step}
                       value={getOptionValue(option.id, option.default) as number}
-                      onChange={(e) => handleOptionChange(option.id, parseFloat(e.target.value))}
+                      onChange={(e) => handleRangeOptionChange(option as RangeSliderThemeOption, e.target.value)}
                       className="flex-1 h-1 bg-secondary appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:rounded-none hover:[&::-webkit-slider-thumb]:bg-primary/80"
                     />
                     <span className="text-xs font-mono w-12 text-right">{getOptionValue(option.id, option.default) as number}</span>

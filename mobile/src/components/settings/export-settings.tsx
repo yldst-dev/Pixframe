@@ -3,6 +3,33 @@ import { useTranslation } from 'react-i18next';
 import { useStore } from '../../store';
 import Toggle from '../ui/toggle';
 import Button from '../ui/button';
+import { normalizeIntegerInput, parseDecimalInput, parseIntegerInput } from '../../utils/numeric-input';
+
+interface SettingItemProps {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}
+
+const FIX_IMAGE_WIDTH_MIN = 100;
+const FIX_IMAGE_WIDTH_MAX = 4000;
+const FIX_IMAGE_WIDTH_FALLBACK = 1920;
+
+const SettingItem: React.FC<SettingItemProps> = ({ title, description, children }) => (
+  <div className="space-y-2">
+    <div>
+      <div className="text-sm font-medium text-gray-900 dark:text-white">
+        {title}
+      </div>
+      {description && (
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          {description}
+        </div>
+      )}
+    </div>
+    {children}
+  </div>
+);
 
 const ExportSettings = () => {
   const { t } = useTranslation();
@@ -24,28 +51,28 @@ const ExportSettings = () => {
     maintainExif,
     setMaintainExif
   } = useStore();
+  const [fixImageWidthInput, setFixImageWidthInput] = React.useState(String(fixImageWidth));
 
-  const SettingItem: React.FC<{
-    title: string;
-    description?: string;
-    children: React.ReactNode;
-  }> = ({ title, description, children }) => (
-    <div className="space-y-2">
-      <div>
-        <div className="text-sm font-medium text-gray-900 dark:text-white">
-          {title}
-        </div>
-        {description && (
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            {description}
-          </div>
-        )}
-      </div>
-      {children}
-    </div>
-  );
+  React.useEffect(() => {
+    setFixImageWidthInput(String(fixImageWidth));
+  }, [fixImageWidth]);
 
+  const commitFixImageWidth = React.useCallback(() => {
+    const fallback = Number.isFinite(fixImageWidth) ? fixImageWidth : FIX_IMAGE_WIDTH_FALLBACK;
+    const value = parseIntegerInput(fixImageWidthInput, fallback, FIX_IMAGE_WIDTH_MIN, FIX_IMAGE_WIDTH_MAX);
+    setFixImageWidthInput(String(value));
+    setFixImageWidth(value);
+  }, [fixImageWidth, fixImageWidthInput, setFixImageWidth]);
 
+  const handleFixImageWidthPreset = React.useCallback((width: number) => {
+    setFixImageWidthInput(String(width));
+    setFixImageWidth(width);
+  }, [setFixImageWidth]);
+
+  const handleQualityChange = React.useCallback((value: string) => {
+    const fallback = Number.isFinite(quality) ? quality : 0.95;
+    setQuality(parseDecimalInput(value, fallback, 0.1, 1));
+  }, [quality, setQuality]);
 
   return (
     <div className="p-4 space-y-6">
@@ -77,7 +104,7 @@ const ExportSettings = () => {
                 max="1"
                 step="0.1"
                 value={quality}
-                onChange={(e) => setQuality(parseFloat(e.target.value))}
+                onChange={(e) => handleQualityChange(e.target.value)}
                 className="w-full"
               />
               <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
@@ -104,12 +131,18 @@ const ExportSettings = () => {
               <div className="ml-6 space-y-2">
                 <div className="flex items-center space-x-3">
                   <input
-                    type="number"
-                    value={fixImageWidth}
-                    onChange={(e) => setFixImageWidth(parseInt(e.target.value))}
-                    min="100"
-                    max="4000"
-                    step="100"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="off"
+                    value={fixImageWidthInput}
+                    onChange={(e) => setFixImageWidthInput(normalizeIntegerInput(e.target.value))}
+                    onBlur={commitFixImageWidth}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
+                    }}
                     className="w-20 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   />
                   <span className="text-sm text-gray-500 dark:text-gray-400">px</span>
@@ -121,7 +154,7 @@ const ExportSettings = () => {
                   {[1080, 1920, 2560, 3840].map(width => (
                     <button
                       key={width}
-                      onClick={() => setFixImageWidth(width)}
+                      onClick={() => handleFixImageWidthPreset(width)}
                       className={`px-2 py-1 text-xs rounded border transition-colors ${
                         fixImageWidth === width
                           ? 'bg-blue-100 border-blue-300 text-blue-700 dark:bg-blue-900/30 dark:border-blue-600 dark:text-blue-300'

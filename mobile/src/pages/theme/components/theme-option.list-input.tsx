@@ -1,6 +1,7 @@
 import { ListInput, ListItem, Range, Toggle } from 'konsta/react';
 import { useEffect, useState } from 'react';
 import { useStore } from '../../../store';
+import { normalizeIntegerInput, parseDecimalInput, parseIntegerInput } from '../../../utils/numeric-input';
 import Customize from '../database/customize';
 import { ThemeOption, getConverter } from '../types/theme-option';
 
@@ -10,8 +11,13 @@ const ThemeOptionListInput = (props: ThemeOption) => {
 
   useEffect(() => {
     setValue(Customize.get(selectedThemeName, props.id, getConverter(props.type)) ?? props.default);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedThemeName, rerenderOptions]);
+  }, [selectedThemeName, rerenderOptions, props.id, props.type, props.default]);
+
+  const commitNumberValue = () => {
+    const nextValue = parseIntegerInput(String(value), props.default as number);
+    Customize.set(selectedThemeName, props.id, nextValue);
+    setValue(nextValue);
+  };
 
   return (
     <>
@@ -21,11 +27,18 @@ const ThemeOptionListInput = (props: ThemeOption) => {
           name={props.id}
           title={props.id}
           info={props.description}
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           value={value}
           onChange={(e) => {
-            const value = e.target.value;
-            Customize.set(selectedThemeName, props.id, e.target.value);
-            setValue(value);
+            setValue(normalizeIntegerInput(e.target.value));
+          }}
+          onBlur={commitNumberValue}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.currentTarget.blur();
+            }
           }}
         />
       )}
@@ -97,9 +110,10 @@ const ThemeOptionListInput = (props: ThemeOption) => {
                 max={props.max}
                 step={props.step}
                 onChange={(e) => {
-                  const value = Number(e.target.value);
-                  Customize.set(selectedThemeName, props.id, value);
-                  setValue(value);
+                  const fallback = typeof value === 'number' && Number.isFinite(value) ? value : props.default;
+                  const nextValue = parseDecimalInput(e.target.value, fallback, props.min, props.max);
+                  Customize.set(selectedThemeName, props.id, nextValue);
+                  setValue(nextValue);
                 }}
               />
             </div>

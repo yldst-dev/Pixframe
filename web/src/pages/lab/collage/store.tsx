@@ -13,6 +13,19 @@ const DEFAULT_LOADING_PROGRESS: LoadingProgress = {
   currentFileName: '',
 };
 
+const getStoredNumber = (key: string, fallback: number, min?: number): number => {
+  const rawValue = localStorage.getItem(key);
+  const parsedValue = rawValue ? Number(rawValue) : fallback;
+  const value = Number.isFinite(parsedValue) ? parsedValue : fallback;
+  return min === undefined ? value : Math.max(value, min);
+};
+
+const setStoredNumber = (key: string, value: number, min?: number): number => {
+  const nextValue = min === undefined ? value : Math.max(value, min);
+  localStorage.setItem(key, String(nextValue));
+  return nextValue;
+};
+
 type Store = {
   photos: Photo[];
   setPhotos: (photos: Photo[]) => void;
@@ -75,45 +88,45 @@ export const useStore = create<Store>((set) => ({
     set({ ratio });
   },
 
-  numberOfRow: localStorage.getItem('lab:numberOfRow') ? Number(localStorage.getItem('lab:numberOfRow')) : 2,
+  numberOfRow: getStoredNumber('lab:numberOfRow', 2, 1),
   setNumberOfRow: (numberOfRow) => {
-    localStorage.setItem('lab:numberOfRow', String(numberOfRow));
-    set({ numberOfRow });
+    const nextValue = setStoredNumber('lab:numberOfRow', numberOfRow, 1);
+    set({ numberOfRow: nextValue });
   },
 
-  numberOfColumn: localStorage.getItem('lab:numberOfColumn') ? Number(localStorage.getItem('lab:numberOfColumn')) : 2,
+  numberOfColumn: getStoredNumber('lab:numberOfColumn', 2, 1),
   setNumberOfColumn: (numberOfColumn) => {
-    localStorage.setItem('lab:numberOfColumn', String(numberOfColumn));
-    set({ numberOfColumn });
+    const nextValue = setStoredNumber('lab:numberOfColumn', numberOfColumn, 1);
+    set({ numberOfColumn: nextValue });
   },
 
-  paddingTop: localStorage.getItem('lab:paddingTop') ? Number(localStorage.getItem('lab:paddingTop')) : 50,
+  paddingTop: getStoredNumber('lab:paddingTop', 50, 0),
   setPaddingTop: (paddingTop) => {
-    localStorage.setItem('lab:paddingTop', String(paddingTop));
-    set({ paddingTop });
+    const nextValue = setStoredNumber('lab:paddingTop', paddingTop, 0);
+    set({ paddingTop: nextValue });
   },
 
-  paddingBottom: localStorage.getItem('lab:paddingBottom') ? Number(localStorage.getItem('lab:paddingBottom')) : 50,
+  paddingBottom: getStoredNumber('lab:paddingBottom', 50, 0),
   setPaddingBottom: (paddingBottom) => {
-    localStorage.setItem('lab:paddingBottom', String(paddingBottom));
-    set({ paddingBottom });
+    const nextValue = setStoredNumber('lab:paddingBottom', paddingBottom, 0);
+    set({ paddingBottom: nextValue });
   },
 
-  paddingLeft: localStorage.getItem('lab:paddingLeft') ? Number(localStorage.getItem('lab:paddingLeft')) : 50,
+  paddingLeft: getStoredNumber('lab:paddingLeft', 50, 0),
   setPaddingLeft: (paddingLeft) => {
-    localStorage.setItem('lab:paddingLeft', String(paddingLeft));
-    set({ paddingLeft });
+    const nextValue = setStoredNumber('lab:paddingLeft', paddingLeft, 0);
+    set({ paddingLeft: nextValue });
   },
 
-  paddingRight: localStorage.getItem('lab:paddingRight') ? Number(localStorage.getItem('lab:paddingRight')) : 50,
+  paddingRight: getStoredNumber('lab:paddingRight', 50, 0),
   setPaddingRight: (paddingRight) => {
-    localStorage.setItem('lab:paddingRight', String(paddingRight));
-    set({ paddingRight });
+    const nextValue = setStoredNumber('lab:paddingRight', paddingRight, 0);
+    set({ paddingRight: nextValue });
   },
 
-  marginEach: localStorage.getItem('lab:marginEach') ? Number(localStorage.getItem('lab:marginEach')) : 50,
+  marginEach: getStoredNumber('lab:marginEach', 50, 0),
   setMarginEach: (marginEach) => {
-    localStorage.setItem('lab:marginEach', String(marginEach));
-    set({ marginEach });
+    const nextValue = setStoredNumber('lab:marginEach', marginEach, 0);
+    set({ marginEach: nextValue });
   },
 }));
