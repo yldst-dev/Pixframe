@@ -65,7 +65,7 @@
   "root.settings.ratio": "Ratio with crop",
   "root.settings.not-cropped-mode": "Not Cropped Mode",
   "root.settings.export-to-jpeg": "Export to JPEG",
-  "root.settings.maintain-exif": "Keep EXIF Metadata (Only supported in JPEG)",
+  "root.settings.maintain-exif": "Keep EXIF Metadata",
   "root.settings.maintain-exif.footer.on": "Original metadata including location (GPS) will be preserved.",
   "root.settings.maintain-exif.footer.off": "Original metadata including location (GPS) will be removed.",
   "root.settings.quality": "Quality",
@@ -88,6 +88,7 @@
   "root.settings.create-metadata": "Create Metadata",
 
   "export.maintain-exif.description.on": "Original metadata including location (GPS) will be preserved.",
+  "export.maintain-exif.description.png": "Original metadata will be written to the PNG eXIf chunk. Some viewers may show limited details.",
   "export.maintain-exif.description.off": "Original metadata including location (GPS) will be removed.",
 
   "privacy-policy": "Privacy Policy",

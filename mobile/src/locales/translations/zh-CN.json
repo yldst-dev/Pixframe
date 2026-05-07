@@ -65,7 +65,7 @@
   "root.settings.ratio": "裁剪比例",
   "root.settings.not-cropped-mode": "非裁剪模式",
   "root.settings.export-to-jpeg": "导出为 JPEG",
-  "root.settings.maintain-exif": "保留 EXIF 元数据（仅支持 JPEG）",
+  "root.settings.maintain-exif": "保留 EXIF 元数据",
   "root.settings.maintain-exif.footer.on": "将保留包含位置信息（GPS）的原始元数据",
   "root.settings.maintain-exif.footer.off": "将移除包含位置信息（GPS）的原始元数据",
   "root.settings.quality": "质量",
@@ -88,6 +88,7 @@
   "root.settings.create-metadata": "创建元数据",
 
   "export.maintain-exif.description.on": "将保留包含位置信息（GPS）的原始元数据",
+  "export.maintain-exif.description.png": "原始元数据会写入 PNG eXIf 区块。部分查看器可能只显示有限信息",
   "export.maintain-exif.description.off": "将移除包含位置信息（GPS）的原始元数据",
 
   "privacy-policy": "隐私政策",

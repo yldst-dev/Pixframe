@@ -19,7 +19,7 @@ interface DownloadOnePhotoButtonProps {
 const DownloadOnePhotoButton: React.FC<DownloadOnePhotoButtonProps> = ({ photo }) => {
   const { t } = useTranslation();
   const store = useStore();
-  const { selectedThemeName, exportToJpeg, quality, setLoading } = store;
+  const { selectedThemeName, exportToJpeg, maintainExif, quality, setLoading } = store;
 
   const input: ThemeOptionInput = new Map<string, string | number | boolean>();
   const theme = themes.find((theme) => theme.name === selectedThemeName);
@@ -45,7 +45,7 @@ const DownloadOnePhotoButton: React.FC<DownloadOnePhotoButtonProps> = ({ photo }
             const canvas = await render(func!, photo, input, store);
             try {
               const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'png'}`);
-              const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality });
+              const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality, sourceFile: photo.file, maintainExif, fallbackMetadata: photo.metadata });
               await download(filename, data);
             } finally {
               free(canvas);

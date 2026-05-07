@@ -16,6 +16,7 @@ import download from '../../core/file-system/download';
 import { createObjectUrl, revokeObjectUrl } from '../../core/export/blob';
 import { encodeCanvas } from '../../core/export/encode';
 import { buildThemedFileName, resolveExportFormat } from '../../core/export/format';
+import { applyExifMetadata } from '../../core/export/metadata';
 import { resolveThemeOptions } from '../../core/export/theme-options';
 import { showToast } from '../../core/toast';
 
@@ -28,6 +29,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
     selectedThemeName,
     quality,
     exportToJpeg,
+    maintainExif,
     photos,
     themeDarkMode,
     fixWatermark,
@@ -278,7 +280,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
       try {
         const themeName = selectedThemeName.replace(/\s+/g, '_').toLowerCase();
         const format = resolveExportFormat(exportToJpeg);
-        const blob = await encodeCanvas(canvas, format, quality);
+        const encodedBlob = await encodeCanvas(canvas, format, quality);
+        const blob = await applyExifMetadata(encodedBlob, selectedPhoto.file, format, maintainExif, selectedPhoto.metadata);
         await download(buildThemedFileName(selectedPhoto.file.name, themeName, format.extension), blob);
       } finally {
         free(canvas);
@@ -293,7 +296,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
         variant: 'error',
       });
     }
-  }, [selectedPhoto, selectedThemeName, themeStore.option, exportToJpeg, quality, t, triggerDownloadSuccess]);
+  }, [selectedPhoto, selectedThemeName, themeStore.option, exportToJpeg, quality, maintainExif, t, triggerDownloadSuccess]);
 
   const handleEscKey = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Escape') {

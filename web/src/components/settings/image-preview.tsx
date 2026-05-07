@@ -13,6 +13,7 @@ import download from '../../core/file-system/download';
 import { createObjectUrl, revokeObjectUrl } from '../../core/export/blob';
 import { encodeCanvas } from '../../core/export/encode';
 import { buildThemedFileName, resolveExportFormat } from '../../core/export/format';
+import { applyExifMetadata } from '../../core/export/metadata';
 import { resolveThemeOptions } from '../../core/export/theme-options';
 import { useDebounce } from '../../hooks/useDebounce';
 import { ImagePreviewProps } from '../../types';
@@ -29,6 +30,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
     selectedThemeName,
     exportToJpeg,
     quality,
+    maintainExif,
     photos,
     themeDarkMode,
     fixWatermark,
@@ -292,7 +294,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
       try {
         const themeName = selectedThemeName.replace(/\s+/g, '_').toLowerCase();
         const format = resolveExportFormat(exportToJpeg);
-        const blob = await encodeCanvas(canvas, format, quality);
+        const encodedBlob = await encodeCanvas(canvas, format, quality);
+        const blob = await applyExifMetadata(encodedBlob, selectedPhoto.file, format, maintainExif, selectedPhoto.metadata);
         await download(buildThemedFileName(selectedPhoto.file.name, themeName, format.extension), blob);
         triggerDownloadSuccess();
       } finally {
@@ -311,6 +314,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
     themeStore.option,
     exportToJpeg,
     quality,
+    maintainExif,
     t,
     triggerDownloadSuccess,
   ]);

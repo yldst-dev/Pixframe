@@ -41,13 +41,8 @@ const DownloadOnePhotoButton: React.FC<DownloadOnePhotoButtonProps> = ({ photo }
           const canvas = await render(func!, photo, input, store);
           try {
             const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'png'}`);
-            const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality });
-
-            if (exportToJpeg && maintainExif) {
-              await download(filename, data);
-            } else {
-              await download(filename, data);
-            }
+            const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality, sourceFile: photo.file, maintainExif, fallbackMetadata: photo.metadata });
+            await download(filename, data);
           } finally {
             free(canvas);
           }

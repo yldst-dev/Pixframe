@@ -15,7 +15,7 @@ import { ThemeOptionInput, getConverter } from '../../theme/types/theme-option';
 const DownloadAllPhotoButton = () => {
   const { t } = useTranslation();
   const store = useStore();
-  const { photos, selectedThemeName, exportToJpeg, quality, setLoading } = store;
+  const { photos, selectedThemeName, exportToJpeg, maintainExif, quality, setLoading } = store;
 
   const input: ThemeOptionInput = new Map<string, string | number | boolean>();
   const theme = themes.find((theme) => theme.name === selectedThemeName);
@@ -44,7 +44,7 @@ const DownloadAllPhotoButton = () => {
               const canvas = await render(func!, photo, input, store);
               try {
                 const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'png'}`);
-                const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality });
+                const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality, sourceFile: photo.file, maintainExif, fallbackMetadata: photo.metadata });
                 await download(filename, data);
               } finally {
                 free(canvas);
@@ -56,7 +56,7 @@ const DownloadAllPhotoButton = () => {
               const canvas = await render(func!, photo, input, store);
               try {
                 const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'png'}`);
-                const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality });
+                const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality, sourceFile: photo.file, maintainExif, fallbackMetadata: photo.metadata });
                 files.push({ filename, data });
               } finally {
                 free(canvas);

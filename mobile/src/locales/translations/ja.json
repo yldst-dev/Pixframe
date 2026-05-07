@@ -65,7 +65,7 @@
   "root.settings.ratio": "比率",
   "root.settings.not-cropped-mode": "切り取られていないモード",
   "root.settings.export-to-jpeg": "JPEGにエクスポート",
-  "root.settings.maintain-exif": "EXIFメタデータを保持（JPEGのみサポート）",
+  "root.settings.maintain-exif": "EXIFメタデータを保持",
   "root.settings.maintain-exif.footer.on": "位置情報（GPS）を含む元のメタデータが保持されます",
   "root.settings.maintain-exif.footer.off": "位置情報（GPS）を含む元のメタデータが削除されます",
   "root.settings.quality": "画質",
@@ -88,6 +88,7 @@
   "root.settings.create-metadata": "メタデータを作成",
 
   "export.maintain-exif.description.on": "位置情報（GPS）を含む元のメタデータが保持されます",
+  "export.maintain-exif.description.png": "元のメタデータは PNG eXIf チャンクに書き込まれます。一部のビューアでは表示が制限される場合があります",
   "export.maintain-exif.description.off": "位置情報（GPS）を含む元のメタデータが削除されます",
 
   "privacy-policy": "プライバシーポリシー",

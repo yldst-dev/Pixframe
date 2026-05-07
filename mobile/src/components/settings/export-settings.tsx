@@ -74,6 +74,12 @@ const ExportSettings = () => {
     setQuality(parseDecimalInput(value, fallback, 0.1, 1));
   }, [quality, setQuality]);
 
+  const maintainExifDescription = !maintainExif
+    ? t('export.maintain-exif.description.off', 'Original metadata including location (GPS) will be removed.')
+    : exportToJpeg
+      ? t('export.maintain-exif.description.on', 'Original metadata including location (GPS) will be preserved.')
+      : t('export.maintain-exif.description.png', 'Original metadata will be written to the PNG eXIf chunk. Some viewers may show limited details.');
+
   return (
     <div className="p-4 space-y-6">
       <div className="space-y-4">
@@ -214,9 +220,7 @@ const ExportSettings = () => {
               label={t('export.maintain-exif', 'Preserve Original EXIF Data')}
             />
             <div className="text-xs text-gray-500 dark:text-gray-400">
-              {maintainExif
-                ? t('export.maintain-exif.description.on', 'Original metadata including location (GPS) will be preserved.')
-                : t('export.maintain-exif.description.off', 'Original metadata including location (GPS) will be removed.')}
+              {maintainExifDescription}
             </div>
           </div>
         </div>

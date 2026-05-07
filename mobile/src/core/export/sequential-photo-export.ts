@@ -7,6 +7,7 @@ import { ThemeOptionInput } from '../../pages/theme/types/theme-option';
 import { buildThemedFileName, resolveExportFormat } from './format';
 import { encodeCanvas } from './encode';
 import { EncodedExportFile, ExportProgress } from './types';
+import { applyExifMetadata } from './metadata';
 
 interface SequentialPhotoExportOptions {
   onProgress?: (progress: ExportProgress) => void;
@@ -34,7 +35,8 @@ export async function* exportPhotosSequentially(options: SequentialPhotoExportOp
     const canvas = await render(themeFunc, photo, themeOptions, store);
 
     try {
-      const blob = await encodeCanvas(canvas, exportFormat, store.quality);
+      const encodedBlob = await encodeCanvas(canvas, exportFormat, store.quality);
+      const blob = await applyExifMetadata(encodedBlob, photo.file, exportFormat, store.maintainExif, photo.metadata);
       yield {
         blob,
         filename: buildThemedFileName(photo.file.name, normalizedThemeName, exportFormat.extension),
