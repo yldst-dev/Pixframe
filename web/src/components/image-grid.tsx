@@ -68,7 +68,7 @@ const ImageGrid: React.FC<ImageGridProps> = ({ selectedIndex, onSelectImage }) =
               <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
                 <div className="flex items-center justify-between">
                   <span>
-                    {focalLength35mmMode ? photo.metadata.focalLengthIn35mm : photo.metadata.focalLength}
+                    {focalLength35mmMode ? photo.metadata.focalLengthIn35mm || photo.metadata.focalLength : photo.metadata.focalLength}
                   </span>
                   <span>{photo.metadata.fNumber}</span>
                 </div>

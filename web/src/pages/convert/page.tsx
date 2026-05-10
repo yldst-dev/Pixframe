@@ -43,7 +43,7 @@ const FramePage = () => {
             key={index}
             media={<img src={photo.thumbnail} alt={photo.file.name} style={{ width: '8rem', height: '6rem', objectFit: 'cover', borderRadius: '0.5rem' }} />}
             title={photo.file.name}
-            subtitle={`${focalLength35mmMode ? photo.metadata.focalLengthIn35mm : photo.metadata.focalLength} ${photo.metadata.fNumber} ${photo.metadata.iso} ${photo.metadata.exposureTime}`}
+            subtitle={`${focalLength35mmMode ? photo.metadata.focalLengthIn35mm || photo.metadata.focalLength : photo.metadata.focalLength} ${photo.metadata.fNumber} ${photo.metadata.iso} ${photo.metadata.exposureTime}`}
             text={`${photo.metadata.make} ${photo.metadata.model} ${photo.metadata.lensModel}`}
             footer={
               <div className="flex space-x-1 mt-1">

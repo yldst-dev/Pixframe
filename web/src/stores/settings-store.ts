@@ -97,7 +97,7 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   overrideCameraMaker: SafeStorage.getItem('overrideCameraMaker', ''),
   overrideCameraModel: SafeStorage.getItem('overrideCameraModel', ''),
   overrideLensModel: SafeStorage.getItem('overrideLensModel', ''),
-  focalLength35mmMode: SafeStorage.getBooleanItem('focalLength35mmMode', false),
+  focalLength35mmMode: SafeStorage.getBooleanItem('focalLength35mmMode', true),
   focalLengthRatioMode: SafeStorage.getBooleanItem('focalLengthRatioMode', false),
   focalLengthRatio: SafeStorage.getNumberItem('focalLengthRatio', 1),
   disableExposureMeter: SafeStorage.getBooleanItem('disableExposureMeter', false),

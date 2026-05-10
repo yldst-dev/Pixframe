@@ -90,9 +90,9 @@ class Photo {
       const focalLength = parseFloat(overrideExifMetadata()?.focalLength?.replace(' mm', '') || this.metadata?.focalLength?.replace(' mm', '') || '0');
       return (focalLength * SafeStorage.getNumberItem('focalLengthRatio', 1)).toFixed(0) + 'mm';
     }
-    return !SafeStorage.getBooleanItem('focalLength35mmMode', false)
+    return !SafeStorage.getBooleanItem('focalLength35mmMode', true)
       ? overrideExifMetadata()?.focalLength || this.metadata.focalLength || ''
-      : overrideExifMetadata()?.focalLengthIn35mm || this.metadata.focalLengthIn35mm || '';
+      : overrideExifMetadata()?.focalLengthIn35mm || this.metadata.focalLengthIn35mm || overrideExifMetadata()?.focalLength || this.metadata.focalLength || '';
   }
 
   public get fNumber(): string {

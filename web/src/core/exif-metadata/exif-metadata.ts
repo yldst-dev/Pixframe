@@ -1,5 +1,53 @@
 import { Tags } from 'exifreader';
 
+const KNOWN_35MM_SCALE_FACTORS: Record<string, number> = {
+  'canon|canon powershot v1': 50 / 25.6,
+  'canon|powershot v1': 50 / 25.6,
+};
+
+interface NumericTagLike {
+  description?: string;
+  value?: unknown;
+}
+
+const getTagNumber = (tag: NumericTagLike | undefined): number | undefined => {
+  const value = tag?.value;
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length >= 2 && typeof value[0] === 'number' && typeof value[1] === 'number' && value[1] !== 0) {
+      return value[0] / value[1];
+    }
+    if (value.length === 1 && typeof value[0] === 'number') {
+      return value[0];
+    }
+  }
+
+  const description = tag?.description;
+  if (typeof description === 'string') {
+    const parsed = Number(description.match(/[\d.]+/)?.[0]);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  return undefined;
+};
+
+const formatFocalLength = (value: number): string => {
+  const roundedInteger = Math.round(value);
+  if (Math.abs(value - roundedInteger) < 0.05) {
+    return `${roundedInteger}mm`;
+  }
+
+  return `${Number(value.toFixed(1))}mm`;
+};
+
+const getKnown35mmScaleFactor = (make: string | undefined, model: string | undefined): number | undefined => {
+  const key = `${make || ''}|${model || ''}`.toLowerCase();
+  return KNOWN_35MM_SCALE_FACTORS[key];
+};
+
 class ExifMetadata {
   public make: string | undefined;
   public model: string | undefined;
@@ -27,30 +75,25 @@ class ExifMetadata {
     this.make = make;
     this.model = model;
 
-    const focalLength = metadata?.FocalLength?.description?.replace(' mm', 'mm');
-    const focalLengthIn35mm = metadata?.FocalLengthIn35mmFilm?.value
-      ? `${metadata?.FocalLengthIn35mmFilm?.value}mm`
-      : metadata?.UprightFocalLength35mm?.value
-      ? metadata.UprightFocalLength35mm.value.includes('.')
-        ? `${metadata.UprightFocalLength35mm.value.split('.').shift()}mm`
-        : `${metadata.UprightFocalLength35mm.value}mm`
-      : undefined;
+    const focalLengthValue = getTagNumber(metadata?.FocalLength);
+    const focalLength = focalLengthValue ? formatFocalLength(focalLengthValue) : metadata?.FocalLength?.description?.replace(' mm', 'mm');
+    const focalLength35mmFilmValue = getTagNumber(metadata?.FocalLengthIn35mmFilm);
+    const uprightFocalLength35mmValue = getTagNumber(metadata?.UprightFocalLength35mm);
+    const known35mmScaleFactor = getKnown35mmScaleFactor(make, model);
+    const focalLengthIn35mmValue = focalLength35mmFilmValue || uprightFocalLength35mmValue || (focalLengthValue && known35mmScaleFactor ? focalLengthValue * known35mmScaleFactor : undefined);
+    const focalLengthIn35mm = focalLengthIn35mmValue ? formatFocalLength(focalLengthIn35mmValue) : undefined;
     const fNumber = metadata?.FNumber?.description?.substring(0, 5)?.replace('f/', 'F');
 
-    // 여러 렌즈 관련 태그를 확인 (LensModel, LensSpec, LensSpecification, Lens 순서로)
     let lensInfo: string | undefined = metadata?.LensModel?.description ||
                    metadata?.LensSpec?.description ||
                    metadata?.LensSpecification?.description ||
                    metadata?.Lens?.description ||
                    metadata?.LensInfo?.description;
 
-    // Sony RX100M3의 경우 LensSpecification을 35mm 등가로 변환
     if (lensInfo === '8.8-25.7 mm f/2.8' || lensInfo === '8.8-25.7 mm f/1.8-2.8') {
       lensInfo = '24-70mm F1.8-2.8';
     }
 
-    // Some cameras (e.g. fixed-lens compacts) don't write LensModel/LensSpecification.
-    // Fallback to something meaningful so Strap's {LENS} line isn't blank.
     if (!lensInfo) {
       const fallbackLensParts: string[] = [];
       const fl = focalLengthIn35mm || focalLength;
