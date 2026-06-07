@@ -9,6 +9,17 @@ let androidLastStamp = 0;
 let androidStampSequence = 0;
 type DownloadData = Blob | string;
 
+const withDownloadTimestamp = (filename: string, data: DownloadData): DownloadData => {
+  if (!(data instanceof Blob)) {
+    return data;
+  }
+
+  return new File([data], filename, {
+    lastModified: Date.now(),
+    type: data.type,
+  });
+};
+
 async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -115,7 +126,7 @@ async function saveNativePhoto(filename: string, data: DownloadData): Promise<vo
 
 export default async function download(filename: string, data: DownloadData): Promise<void> {
   if (!Capacitor.isNativePlatform()) {
-    saveAs(data, filename);
+    saveAs(withDownloadTimestamp(filename, data), filename);
     return;
   }
 

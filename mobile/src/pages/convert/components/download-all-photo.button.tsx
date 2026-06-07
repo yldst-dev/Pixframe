@@ -5,12 +5,13 @@ import DownloadIcon from '../../../icons/download.icon';
 import render from '../../../core/drawing/render';
 import themes from '../../../themes';
 import { Capacitor } from '@capacitor/core';
-import convert from '../../../core/drawing/convert';
 import free from '../../../core/drawing/free';
 import download from '../../../core/file-system/download';
 import compress from '../../../core/file-system/compress';
 import saveNativeBatch from '../../../core/file-system/save-native-batch';
 import { showToast } from '../../../core/toast';
+import { resolveExportFormat } from '../../../core/export/format';
+import { exportRenderedCanvas } from '../../../core/export/rendered-export';
 import Customize from '../../theme/database/customize';
 import { ThemeOptionInput, getConverter } from '../../theme/types/theme-option';
 
@@ -42,21 +43,25 @@ const DownloadAllPhotoButton = () => {
           setLoadingProgress({ current: 0, total: photos.length, currentFileName: photos[0]?.file.name || '' });
           await new Promise((resolve) => setTimeout(resolve, 100));
 
-          const resolveFileName = (index: number): string => photos[index].file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'png'}`);
-
           try {
             if (Capacitor.isNativePlatform()) {
               const result = await saveNativeBatch(
                 {
                   total: photos.length,
-                  getFileName: resolveFileName,
+                  getFileName: (index: number) => photos[index].file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'png'}`),
                   getFile: async (index: number) => {
                     const photo = photos[index];
                     const canvas = await render(func!, photo, input, store);
                     try {
-                      const filename = resolveFileName(index);
-                      const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality, sourceFile: photo.file, maintainExif, fallbackMetadata: photo.metadata });
-                      return { filename, data };
+                      const exported = await exportRenderedCanvas(canvas, {
+                        fallbackMetadata: photo.metadata,
+                        format: resolveExportFormat(exportToJpeg),
+                        maintainExif,
+                        quality,
+                        sourceFile: photo.file,
+                      });
+                      const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exported.format.extension}`);
+                      return { filename, data: exported.blob };
                     } finally {
                       free(canvas);
                     }
@@ -91,9 +96,15 @@ const DownloadAllPhotoButton = () => {
                 setLoadingProgress({ current: i + 1, total: photos.length, currentFileName: photo.file.name });
                 const canvas = await render(func!, photo, input, store);
                 try {
-                  const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'png'}`);
-                  const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality, sourceFile: photo.file, maintainExif, fallbackMetadata: photo.metadata });
-                  files.push({ filename, data });
+                  const exported = await exportRenderedCanvas(canvas, {
+                    fallbackMetadata: photo.metadata,
+                    format: resolveExportFormat(exportToJpeg),
+                    maintainExif,
+                    quality,
+                    sourceFile: photo.file,
+                  });
+                  const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exported.format.extension}`);
+                  files.push({ filename, data: exported.blob });
                 } finally {
                   free(canvas);
                 }

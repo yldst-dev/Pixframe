@@ -81,11 +81,10 @@ export interface SettingsActions {
 export type SettingsStore = SettingsState & SettingsActions;
 
 export const useSettingsStore = create<SettingsStore>((set) => ({
-  // State with safe localStorage access
   language: SafeStorage.getItem('language', 'en') as SupportedLanguage,
   dateNotation: SafeStorage.getItem('dateNotation', '2001/01/01 01:01:01'),
   quality: SafeStorage.getNumberItem('quality', 0.95),
-  exportToJpeg: SafeStorage.getBooleanItem('exportToJpeg', false),
+  exportToJpeg: SafeStorage.getBooleanItem('exportToJpeg', true),
   maintainExif: SafeStorage.getBooleanItem('maintainExif', true),
   fixImageWidth: SafeStorage.getIntItem('fixImageWidth', 1920),
   enableFixImageWidth: SafeStorage.getBooleanItem('enableFixImageWidth', false),
@@ -112,7 +111,6 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
   themeDarkMode: SafeStorage.getBooleanItem('themeDarkMode', false),
   rerenderOptions: 0,
 
-  // Actions with safe localStorage persistence
   setLanguage: (language: SupportedLanguage) =>
     set(() => {
       SafeStorage.setItem('language', language);

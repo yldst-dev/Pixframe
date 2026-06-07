@@ -5,9 +5,8 @@ import { Store } from '../../store';
 import { ThemeFunc } from '../drawing/theme';
 import { ThemeOptionInput } from '../../pages/theme/types/theme-option';
 import { buildThemedFileName, resolveExportFormat } from './format';
-import { encodeCanvas } from './encode';
 import { EncodedExportFile, ExportProgress } from './types';
-import { applyExifMetadata } from './metadata';
+import { exportRenderedCanvas } from './rendered-export';
 
 interface SequentialPhotoExportOptions {
   onProgress?: (progress: ExportProgress) => void;
@@ -35,12 +34,17 @@ export async function* exportPhotosSequentially(options: SequentialPhotoExportOp
     const canvas = await render(themeFunc, photo, themeOptions, store);
 
     try {
-      const encodedBlob = await encodeCanvas(canvas, exportFormat, store.quality);
-      const blob = await applyExifMetadata(encodedBlob, photo.file, exportFormat, store.maintainExif, photo.metadata);
+      const result = await exportRenderedCanvas(canvas, {
+        fallbackMetadata: photo.metadata,
+        format: exportFormat,
+        maintainExif: store.maintainExif,
+        quality: store.quality,
+        sourceFile: photo.file,
+      });
       yield {
-        blob,
-        filename: buildThemedFileName(photo.file.name, normalizedThemeName, exportFormat.extension),
-        mimeType: exportFormat.mimeType,
+        blob: result.blob,
+        filename: buildThemedFileName(photo.file.name, normalizedThemeName, result.format.extension),
+        mimeType: result.format.mimeType,
       };
     } finally {
       free(canvas);

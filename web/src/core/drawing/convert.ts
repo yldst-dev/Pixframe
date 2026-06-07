@@ -1,6 +1,6 @@
-import { encodeCanvas } from '../export/encode';
 import { resolveExportFormat } from '../export/format';
-import { applyExifMetadata, ExportExifMetadata } from '../export/metadata';
+import { ExportExifMetadata } from '../export/metadata';
+import { exportRenderedCanvas } from '../export/rendered-export';
 import { ExportMimeType } from '../export/types';
 
 interface ConvertOption {
@@ -13,6 +13,12 @@ interface ConvertOption {
 
 export default async function convert(canvas: HTMLCanvasElement, options: ConvertOption): Promise<Blob> {
   const format = resolveExportFormat(options.type === 'image/jpeg');
-  const blob = await encodeCanvas(canvas, format, options.quality);
-  return options.sourceFile ? await applyExifMetadata(blob, options.sourceFile, format, options.maintainExif === true, options.fallbackMetadata) : blob;
+  const result = await exportRenderedCanvas(canvas, {
+    fallbackMetadata: options.fallbackMetadata,
+    format,
+    maintainExif: options.maintainExif,
+    quality: options.quality,
+    sourceFile: options.sourceFile,
+  });
+  return result.blob;
 }

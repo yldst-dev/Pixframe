@@ -5,10 +5,11 @@ import DownloadIcon from '../../../icons/download.icon';
 import render from '../../../core/drawing/render';
 import themes from '../../../themes';
 import { Capacitor } from '@capacitor/core';
-import convert from '../../../core/drawing/convert';
 import free from '../../../core/drawing/free';
 import download from '../../../core/file-system/download';
 import compress from '../../../core/file-system/compress';
+import { resolveExportFormat } from '../../../core/export/format';
+import { exportRenderedCanvas } from '../../../core/export/rendered-export';
 import Customize from '../../theme/database/customize';
 import { ThemeOptionInput, getConverter } from '../../theme/types/theme-option';
 
@@ -43,9 +44,15 @@ const DownloadAllPhotoButton = () => {
             for (const photo of photos) {
               const canvas = await render(func!, photo, input, store);
               try {
-                const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'png'}`);
-                const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality, sourceFile: photo.file, maintainExif, fallbackMetadata: photo.metadata });
-                await download(filename, data);
+                const result = await exportRenderedCanvas(canvas, {
+                  fallbackMetadata: photo.metadata,
+                  format: resolveExportFormat(exportToJpeg),
+                  maintainExif,
+                  quality,
+                  sourceFile: photo.file,
+                });
+                const filename = photo.file.name.replace(/\.[^/.]+$/, `.${result.format.extension}`);
+                await download(filename, result.blob);
               } finally {
                 free(canvas);
               }
@@ -55,9 +62,15 @@ const DownloadAllPhotoButton = () => {
             for (const photo of photos) {
               const canvas = await render(func!, photo, input, store);
               try {
-                const filename = photo.file.name.replace(/\.[^/.]+$/, `.${exportToJpeg ? 'jpg' : 'png'}`);
-                const data = await convert(canvas, { type: exportToJpeg ? 'image/jpeg' : 'image/png', quality, sourceFile: photo.file, maintainExif, fallbackMetadata: photo.metadata });
-                files.push({ filename, data });
+                const result = await exportRenderedCanvas(canvas, {
+                  fallbackMetadata: photo.metadata,
+                  format: resolveExportFormat(exportToJpeg),
+                  maintainExif,
+                  quality,
+                  sourceFile: photo.file,
+                });
+                const filename = photo.file.name.replace(/\.[^/.]+$/, `.${result.format.extension}`);
+                files.push({ filename, data: result.blob });
               } finally {
                 free(canvas);
               }

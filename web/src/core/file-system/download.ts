@@ -5,6 +5,17 @@ import { blobToDataUrl } from '../export/blob';
 
 type DownloadData = Blob | string;
 
+const withDownloadTimestamp = (filename: string, data: DownloadData): DownloadData => {
+  if (!(data instanceof Blob)) {
+    return data;
+  }
+
+  return new File([data], filename, {
+    lastModified: Date.now(),
+    type: data.type,
+  });
+};
+
 const resolveNativePath = async (data: DownloadData): Promise<string> => {
   if (typeof data === 'string') {
     return data;
@@ -43,7 +54,7 @@ export default async function download(filename: string, data: DownloadData): Pr
     }
 
     case 'web':
-      saveAs(data, filename);
+      saveAs(withDownloadTimestamp(filename, data), filename);
       break;
   }
 }
