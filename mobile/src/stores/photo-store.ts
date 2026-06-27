@@ -78,7 +78,7 @@ export const usePhotoStore = create<PhotoStore>((set) => ({
       if (state.photos.length > 0) {
         revokePhotoUrls(state.photos);
       }
-      return { photos: [], queuedFiles: [] };
+      return { photos: [] };
     }),
   setQueuedFiles: (files: File[]) => set({ queuedFiles: files }),
   enqueueFiles: (files: File[]) =>
