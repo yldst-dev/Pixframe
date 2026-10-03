@@ -241,5 +241,13 @@
   "common.delete": "삭제",
   "confirm.delete_all": "모든 사진을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
   "confirm.delete_all.title": "전체 사진 삭제",
-  "delete.all": "전체 삭제"
+  "delete.all": "전체 삭제",
+
+  "preview.download-complete": "다운로드 완료",
+  "preview.next": "다음 사진",
+  "preview.previous": "이전 사진",
+  "preview.zoom": "클릭하여 크게 보기",
+  "theme.option.string.placeholder": "텍스트 입력",
+  "toolbar.hide-photos": "사진 숨기기",
+  "workspace.empty.description": "추가한 사진이 여기에 표시됩니다. 화면 어디에든 끌어다 놓아도 됩니다."
 }

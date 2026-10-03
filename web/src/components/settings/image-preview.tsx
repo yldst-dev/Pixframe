@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import ImageIcon from '../../icons/image.icon';
 import Button from '../ui/button';
 import IconButton from '../ui/icon-button';
-import PfLoader from '../ui/pf-loader';
 import TrashIcon from '../../icons/trash.icon';
 import { useStore } from '../../store';
 import themes, { useThemeStore } from '../../themes';
@@ -16,17 +15,18 @@ import { buildThemedFileName, resolveExportFormat } from '../../core/export/form
 import { exportRenderedCanvas } from '../../core/export/rendered-export';
 import { resolveThemeOptions } from '../../core/export/theme-options';
 import { useDebounce } from '../../hooks/useDebounce';
+import { formatFileSize } from '../../utils/format-file-size';
 import { ImagePreviewProps } from '../../types';
+import type Photo from '../../core/photo';
 import DownloadSettingsModal from './download-settings-modal';
-import { IoCheckmarkCircle, IoDownloadOutline } from 'react-icons/io5';
+import { IoCheckmarkCircle, IoChevronBack, IoChevronForward, IoClose, IoDownloadOutline } from 'react-icons/io5';
 
 const PREVIEW_CACHE_LIMIT = 24;
 
-const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
+const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto, onDelete, onPrevious, onNext }) => {
   const { t } = useTranslation();
   const store = useStore();
   const {
-    darkMode,
     selectedThemeName,
     exportToJpeg,
     quality,
@@ -50,7 +50,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
     setRerenderOptions,
   } = store;
   const themeStore = useThemeStore();
-  const [themedPreview, setThemedPreview] = useState<string | null>(null);
+  const [themedPreview, setThemedPreview] = useState<{ src: string; photo: Photo } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
@@ -170,14 +170,6 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
     previewCacheOrderRef.current = [];
   }, []);
 
-  const formatFileSize = useCallback((bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  }, []);
-
   useEffect(() => {
     if (!selectedPhoto || !selectedThemeName) {
       setThemedPreview(null);
@@ -188,7 +180,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
 
     const cachedPreview = previewCacheRef.current.get(previewCacheKey);
     if (cachedPreview) {
-      setThemedPreview(cachedPreview);
+      setThemedPreview({ src: cachedPreview, photo: selectedPhoto });
       setIsGenerating(false);
       setGenerationError(null);
       return;
@@ -196,7 +188,6 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
 
     const generationId = generationIdRef.current + 1;
     generationIdRef.current = generationId;
-    setThemedPreview(null);
     setGenerationError(null);
     setIsGenerating(true);
 
@@ -226,7 +217,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
           }
 
           cachePreview(previewCacheKey, previewUrl);
-          setThemedPreview(previewUrl);
+          setThemedPreview({ src: previewUrl, photo: selectedPhoto });
         } finally {
           free(canvas);
         }
@@ -254,13 +245,6 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
     exportToJpeg,
     quality,
   ]);
-
-  const handleImageClick = useCallback(() => {
-    if (!themedPreview) {
-      return;
-    }
-    setShowModal(true);
-  }, [themedPreview]);
 
   const triggerDownloadSuccess = useCallback(() => {
     if (downloadSuccessTimerRef.current) {
@@ -347,140 +331,127 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
     };
   }, [clearPreviewCache]);
 
-  const previewInfo = useMemo(() => {
-    if (!selectedPhoto) return null;
-
-    return {
-      originalSize: `${selectedPhoto.image.naturalWidth} × ${selectedPhoto.image.naturalHeight}`,
-      outputSize: `${selectedPhoto.image.width} × ${selectedPhoto.image.height}`,
-      fileSize: formatFileSize(selectedPhoto.file.size),
-    };
-  }, [selectedPhoto, formatFileSize]);
-
   if (!selectedPhoto) {
     return (
-      <div className="p-6 text-center">
+      <div className="h-full flex items-center justify-center p-6 text-center">
         <div className="flex flex-col items-center space-y-4">
-          <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-400">
+          <div className="w-16 h-16 flex items-center justify-center border border-border bg-secondary text-muted-foreground">
             <ImageIcon size={32} />
           </div>
           <div className="space-y-2">
-            <h3 className="font-medium text-gray-900 dark:text-white">{t('preview.no-selection', 'No Image Selected')}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t('preview.select-instruction', 'Select an image from the grid to see the export preview')}</p>
+            <h3 className="font-medium text-foreground">{t('preview.no-selection', 'No Image Selected')}</h3>
+            <p className="text-sm text-muted-foreground">{t('preview.select-description', 'Choose a photo from the sidebar to see the preview')}</p>
           </div>
         </div>
       </div>
     );
   }
 
-  const previewSrc = themedPreview || selectedPhoto.image.src;
+  const displayedPreview = themedPreview?.photo === selectedPhoto ? themedPreview.src : null;
+  const isPreviewReady = displayedPreview !== null && !isGenerating;
+  const photoIndex = photos.indexOf(selectedPhoto);
+  const showNavigation = Boolean(onPrevious && onNext) && photos.length > 1;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 flex flex-col p-0 min-h-0">
-        <div
-          className="flex-1 bg-gray-100 dark:bg-gray-800 overflow-hidden min-h-0 image-preview-container"
-          style={{
-            backgroundColor: darkMode ? 'rgba(31, 41, 55, 0.8)' : 'rgba(243, 244, 246, 0.8)',
-          }}
-        >
-          {previewSrc ? (
-            <div className="w-full h-full p-0 image-preview-container relative">
-              <img
-                src={previewSrc}
-                alt={`Export preview - ${selectedPhoto.file.name}`}
-                className={`max-w-full max-h-full object-contain ${themedPreview ? 'hover:opacity-90 cursor-pointer' : ''}`}
-                onClick={handleImageClick}
-                loading="lazy"
-                decoding="async"
-              />
-              {isGenerating && !themedPreview && (
-                <div className="absolute inset-0 bg-black/10 flex items-center justify-center pointer-events-none">
-                  <div className="flex items-center gap-2 px-3 py-2 bg-black/70 text-white text-xs rounded-md">
-                    <PfLoader className="w-4 h-4" />
-                    <span>{t('preview.generating', '미리보기 생성 중...')}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : generationError ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center space-y-3">
-                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto">
-                  <svg className="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-red-800 dark:text-red-200 mb-1">{t('preview.generation-error', 'Preview generation failed')}</p>
-                  <p className="text-xs text-red-600 dark:text-red-400">{generationError}</p>
-                </div>
-                <button
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setGenerationError(null);
-                    setRerenderOptions();
-                  }}
-                  className="text-xs px-3 py-1 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-md hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors"
-                >
-                  {t('preview.retry', 'Try Again')}
-                </button>
-              </div>
-            </div>
-          ) : isGenerating ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center space-y-3">
-                <PfLoader className="w-10 h-10 text-blue-500 mx-auto" />
-                <div>
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('preview.generating', '미리보기 생성 중...')}</p>
-                  {selectedThemeName && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{selectedThemeName}</p>}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center space-y-2">
-                <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto">
-                  <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">{t('preview.waiting', 'Select a theme to see preview')}</p>
-              </div>
-            </div>
-          )}
+    <div className="flex flex-col h-full w-full">
+      <div className={`relative flex-1 min-h-0 p-4 lg:py-8 ${showNavigation ? 'lg:px-16' : 'lg:px-8'}`}>
+        <div className="image-preview-container">
+          <img
+            src={displayedPreview ?? selectedPhoto.image.src}
+            alt={selectedPhoto.file.name}
+            title={displayedPreview ? t('preview.zoom', 'Click to enlarge') : undefined}
+            className={`shadow-lg ring-1 ring-border ${displayedPreview ? 'cursor-zoom-in' : ''}`}
+            onClick={displayedPreview ? () => setShowModal(true) : undefined}
+            decoding="async"
+          />
         </div>
+
+        {isGenerating && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 bg-foreground/85 text-background text-xs whitespace-nowrap pointer-events-none">
+            <span className="h-1.5 w-1.5 bg-background animate-pulse" />
+            <span>{t('preview.generating', 'Generating preview...')}</span>
+          </div>
+        )}
+
+        {generationError && !isGenerating && (
+          <div className="absolute inset-x-0 bottom-4 flex justify-center px-4">
+            <div className="flex items-center gap-3 max-w-md px-4 py-3 border border-destructive/40 bg-background shadow-lg">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-destructive">{t('preview.generation-error', 'Preview generation failed')}</p>
+                <p className="text-xs text-muted-foreground truncate" title={generationError}>
+                  {generationError}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                onClick={() => {
+                  setGenerationError(null);
+                  setRerenderOptions();
+                }}
+              >
+                {t('preview.retry', 'Try Again')}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {showNavigation && (
+          <>
+            <IconButton
+              variant="outline"
+              className="absolute left-3 top-1/2 -translate-y-1/2 bg-background"
+              disabled={photoIndex <= 0}
+              onClick={onPrevious}
+              tooltip={`${t('preview.previous', 'Previous photo')} (←)`}
+            >
+              <IoChevronBack size={18} />
+            </IconButton>
+            <IconButton
+              variant="outline"
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-background"
+              disabled={photoIndex >= photos.length - 1}
+              onClick={onNext}
+              tooltip={`${t('preview.next', 'Next photo')} (→)`}
+            >
+              <IoChevronForward size={18} />
+            </IconButton>
+          </>
+        )}
       </div>
 
-      <div className="flex-shrink-0 p-4 space-y-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <div className="space-y-2 text-sm">
-          <div className="font-medium text-gray-900 dark:text-white truncate" title={selectedPhoto.file.name}>
-            {selectedPhoto.file.name}
+      <div className="shrink-0 flex items-center gap-4 px-4 py-3 border-t border-border bg-background">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2">
+            <p className="text-sm font-medium text-foreground truncate" title={selectedPhoto.file.name}>
+              {selectedPhoto.file.name}
+            </p>
+            {photos.length > 1 && photoIndex >= 0 && (
+              <span className="shrink-0 text-[11px] font-mono text-muted-foreground">
+                {photoIndex + 1} / {photos.length}
+              </span>
+            )}
           </div>
-
-          {previewInfo && (
-            <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-              <div className="flex justify-between">
-                <span>{t('preview.original-size', 'Original Size')}:</span>
-                <span className="font-mono">{previewInfo.originalSize}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>{t('preview.output-size', 'Output Size')}:</span>
-                <span className="font-mono">{previewInfo.outputSize}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>{t('preview.file-size', 'File Size')}:</span>
-                <span className="font-mono">{previewInfo.fileSize}</span>
-              </div>
-            </div>
-          )}
+          <p className="mt-0.5 text-xs font-mono text-muted-foreground truncate">
+            <span title={t('preview.original-size', 'Original Size')}>
+              {selectedPhoto.image.naturalWidth}×{selectedPhoto.image.naturalHeight}
+            </span>
+            <span className="mx-1.5">·</span>
+            <span title={t('preview.file-size', 'File Size')}>{formatFileSize(selectedPhoto.file.size)}</span>
+          </p>
         </div>
 
-        <div className="flex space-x-2">
+        <div className="flex items-center gap-2 shrink-0">
+          {onDelete && (
+            <IconButton variant="outline" onClick={onDelete} tooltip={t('photo.delete', 'Delete photo')} className="hover:!text-destructive hover:!border-destructive">
+              <TrashIcon size={18} />
+            </IconButton>
+          )}
           <Button
             variant="primary"
-            className={`flex-1 !transition-[background-color,color,border-color] !duration-500 !ease-[cubic-bezier(0.4,0,0.2,1)] ${showDownloadSuccess ? '!bg-emerald-500 !border-emerald-500 !text-white' : ''}`}
-            disabled={!themedPreview}
+            className={`h-10 !transition-[background-color,color,border-color] !duration-500 !ease-[cubic-bezier(0.4,0,0.2,1)] ${showDownloadSuccess ? '!bg-emerald-500 !border-emerald-500 !text-white' : ''}`}
+            disabled={!isPreviewReady}
             onClick={handleOpenDownloadSettings}
           >
             <span className="inline-flex items-center justify-center gap-2">
@@ -495,59 +466,39 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ selectedPhoto }) => {
                 />
               </span>
               {showDownloadSuccess
-                ? t('preview.download-complete', '다운로드 완료')
-                : themedPreview
-                  ? t('preview.download-single', '이 사진 다운로드')
-                  : t('preview.generating', '생성 중...')}
+                ? t('preview.download-complete', 'Download complete')
+                : isPreviewReady
+                  ? t('preview.download-single', 'Download this photo')
+                  : t('preview.generating', 'Generating preview...')}
             </span>
           </Button>
-
-          <IconButton
-            variant="ghost"
-            className="h-10 w-10 !bg-red-50 !text-red-600 !border-red-100 rounded-md transition-none hover:!bg-red-50 active:!bg-red-50 focus:!bg-red-50 focus:!ring-0"
-            disabled={!selectedPhoto}
-            onClick={() => {
-              const event = new CustomEvent('delete-current-photo', {
-                detail: { index: photos.indexOf(selectedPhoto) },
-              });
-              window.dispatchEvent(event);
-            }}
-          >
-            <TrashIcon size={20} />
-          </IconButton>
         </div>
       </div>
 
-      {showModal && themedPreview && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
-          <div className="relative flex items-center justify-center" onClick={(event) => event.stopPropagation()}>
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center transition-colors backdrop-blur-sm"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <img
-              src={themedPreview}
-              alt={`Full preview - ${selectedPhoto.file.name}`}
-              className="object-contain shadow-2xl"
-              style={{
-                maxWidth: '90vw',
-                maxHeight: '85vh',
-                width: 'auto',
-                height: 'auto',
-              }}
-            />
-          </div>
+      {showModal && displayedPreview && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedPhoto.file.name}
+          className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-6 cursor-zoom-out"
+          onClick={() => setShowModal(false)}
+        >
+          <img src={displayedPreview} alt={selectedPhoto.file.name} className="max-w-full max-h-full object-contain shadow-2xl" />
+          <button
+            type="button"
+            onClick={() => setShowModal(false)}
+            aria-label={t('close', 'Close')}
+            className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-white/10 text-white hover:bg-white/20 transition-colors"
+          >
+            <IoClose size={22} />
+          </button>
         </div>
       )}
       <DownloadSettingsModal
         isOpen={showDownloadSettings}
         onClose={() => setShowDownloadSettings(false)}
         onConfirm={handleConfirmDownload}
-        confirmLabel={t('preview.download-single', '이 사진 다운로드')}
+        confirmLabel={t('preview.download-single', 'Download this photo')}
         isConfirmDisabled={!selectedPhoto || !selectedThemeName}
         isConfirmLoading={isDownloading}
       />

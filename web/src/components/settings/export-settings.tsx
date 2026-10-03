@@ -14,15 +14,21 @@ interface SettingItemProps {
 const FIX_IMAGE_WIDTH_MIN = 100;
 const FIX_IMAGE_WIDTH_MAX = 4000;
 const FIX_IMAGE_WIDTH_FALLBACK = 1920;
+const FIX_IMAGE_WIDTH_PRESETS = [1080, 1920, 2560, 3840];
+const FORMAT_OPTIONS = [
+  { label: 'JPEG', isJpeg: true },
+  { label: 'PNG', isJpeg: false },
+];
+const SECTION_TITLE_CLASS = 'text-sm font-bold uppercase tracking-wider text-foreground';
 
 const SettingItem: React.FC<SettingItemProps> = ({ title, description, children }) => (
   <div className="space-y-2">
     <div>
-      <div className="text-sm font-medium text-gray-900 dark:text-white">
+      <div className="text-sm font-medium text-foreground">
         {title}
       </div>
       {description && (
-        <div className="text-xs text-gray-500 dark:text-gray-400">
+        <div className="text-xs text-muted-foreground">
           {description}
         </div>
       )}
@@ -77,20 +83,34 @@ const ExportSettings = () => {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <h3 className="font-medium text-gray-900 dark:text-white">
+      <div className="space-y-5">
+        <h3 className={SECTION_TITLE_CLASS}>
           {t('export.format', 'Output Format')}
         </h3>
-        
+
         <SettingItem
           title={t('export.format.type', 'File Format')}
           description={t('export.format.type.description', 'Choose output file format')}
         >
-          <Toggle
-            checked={exportToJpeg}
-            onChange={setExportToJpeg}
-            label={exportToJpeg ? 'JPEG' : 'PNG'}
-          />
+          <div role="radiogroup" aria-label={t('export.format.type', 'File Format')} className="inline-flex border border-input">
+            {FORMAT_OPTIONS.map(({ label, isJpeg }) => {
+              const isActive = exportToJpeg === isJpeg;
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  role="radio"
+                  aria-checked={isActive}
+                  onClick={() => setExportToJpeg(isJpeg)}
+                  className={`px-5 py-1.5 text-xs font-bold font-mono transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
+                    isActive ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:bg-accent hover:text-foreground'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </SettingItem>
 
         {exportToJpeg && (
@@ -107,29 +127,29 @@ const ExportSettings = () => {
                 onChange={setQuality}
                 className="w-full"
               />
-              <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                <span>{t('export.quality.low', '낮음 (10%)')}</span>
-                <span className="font-medium">{Math.round(quality * 100)}%</span>
-                <span>{t('export.quality.high', '높음 (100%)')}</span>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{t('export.quality.low', 'Low (10%)')}</span>
+                <span className="font-mono font-medium text-foreground">{Math.round(quality * 100)}%</span>
+                <span>{t('export.quality.high', 'High (100%)')}</span>
               </div>
             </div>
           </SettingItem>
         )}
 
         <SettingItem
-          title={t('export.width.enable', '너비 고정')}
-          description={t('export.width.enable.description', '모든 이미지를 동일한 너비로 출력합니다')}
+          title={t('export.width.enable', 'Fix Width')}
+          description={t('export.width.enable.description', 'Export every image at the same width')}
         >
           <div className="space-y-3">
             <Toggle
               checked={enableFixImageWidth}
               onChange={setEnableFixImageWidth}
-              label={enableFixImageWidth ? t('export.width.enabled', '너비 고정 활성화') : t('export.width.disabled', '원본 크기 유지')}
+              label={enableFixImageWidth ? t('export.width.enabled', 'Fixed width enabled') : t('export.width.disabled', 'Keep original size')}
             />
-            
+
             {enableFixImageWidth && (
               <div className="ml-6 space-y-2">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center gap-3">
                   <input
                     type="text"
                     inputMode="numeric"
@@ -143,25 +163,26 @@ const ExportSettings = () => {
                         e.currentTarget.blur();
                       }
                     }}
-                    className="w-20 px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                    className="w-24 px-2 py-1.5 text-sm font-mono border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                   />
-                  <span className="text-sm text-gray-500 dark:text-gray-400">px</span>
+                  <span className="text-sm text-muted-foreground">px</span>
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {t('export.width.range', '범위: 100 ~ 4000px (권장: 1920px)')}
+                <div className="text-xs text-muted-foreground">
+                  {t('export.width.range', 'Range: 100 to 4000px (recommended: 1920px)')}
                 </div>
-                <div className="flex space-x-2">
-                  {[1080, 1920, 2560, 3840].map(width => (
+                <div className="flex flex-wrap gap-2">
+                  {FIX_IMAGE_WIDTH_PRESETS.map((width) => (
                     <button
                       key={width}
+                      type="button"
                       onClick={() => handleFixImageWidthPreset(width)}
-                      className={`px-2 py-1 text-xs rounded border transition-colors ${
+                      className={`px-2 py-1 text-xs font-mono border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                         fixImageWidth === width
-                          ? 'bg-blue-100 border-blue-300 text-blue-700 dark:bg-blue-900/30 dark:border-blue-600 dark:text-blue-300'
-                          : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background text-muted-foreground border-input hover:bg-accent hover:text-foreground'
                       }`}
                     >
-                      {width}p
+                      {width}px
                     </button>
                   ))}
                 </div>
@@ -171,10 +192,10 @@ const ExportSettings = () => {
         </SettingItem>
       </div>
 
-      <div className="border-t border-gray-200 dark:border-gray-700"></div>
+      <div className="border-t border-border"></div>
 
       <div className="space-y-4">
-        <h3 className="font-medium text-gray-900 dark:text-white">
+        <h3 className={SECTION_TITLE_CLASS}>
           {t('export.metadata', 'Metadata Display')}
         </h3>
 
@@ -184,13 +205,13 @@ const ExportSettings = () => {
             onChange={setShowCameraMaker}
             label={t('export.show-camera-maker', 'Show Camera Maker')}
           />
-          
+
           <Toggle
             checked={showCameraModel}
             onChange={setShowCameraModel}
             label={t('export.show-camera-model', 'Show Camera Model')}
           />
-          
+
           <Toggle
             checked={showLensModel}
             onChange={setShowLensModel}
@@ -199,27 +220,20 @@ const ExportSettings = () => {
         </div>
       </div>
 
-      <div className="border-t border-gray-200 dark:border-gray-700"></div>
+      <div className="border-t border-border"></div>
 
       <div className="space-y-4">
-        <h3 className="font-medium text-gray-900 dark:text-white">
+        <h3 className={SECTION_TITLE_CLASS}>
           {t('export.advanced', 'Advanced Options')}
         </h3>
 
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <Toggle
-              checked={maintainExif}
-              onChange={setMaintainExif}
-              label={t('export.maintain-exif', 'Preserve Original EXIF Data')}
-            />
-            <div className="text-xs text-gray-500 dark:text-gray-400">
-              {maintainExifDescription}
-            </div>
-          </div>
-        </div>
+        <Toggle
+          checked={maintainExif}
+          onChange={setMaintainExif}
+          label={t('export.maintain-exif', 'Preserve Original EXIF Data')}
+          description={maintainExifDescription}
+        />
       </div>
-
     </div>
   );
 };

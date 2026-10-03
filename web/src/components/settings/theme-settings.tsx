@@ -186,39 +186,33 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isMobile = false }) => {
             </IconButton>
           </div>
           
-          <div className="grid grid-cols-1 gap-[-1px] border border-border bg-border">
-            {themes.map((theme) => (
-              <button
-                key={theme.name}
-                onClick={() => handleThemeSelect(theme.name)}
-                className={`
-                  p-4 text-left transition-all relative border-b border-border last:border-b-0 bg-background
-                  hover:bg-muted
-                  ${selectedThemeName === theme.name
-                    ? 'bg-secondary'
-                    : ''
-                  }
-                `}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-sm text-foreground uppercase tracking-tight">
-                      {theme.name}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1 font-mono">
-                      {t(`theme.${theme.name.toLowerCase()}.description`, 'Theme description')}
-                    </div>
-                  </div>
-                  {selectedThemeName === theme.name && (
-                    <div className="w-2 h-2 bg-primary" />
-                  )}
-                </div>
-                {selectedThemeName === theme.name && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />
-                )}
-              </button>
-            ))}
+          <div className="grid grid-cols-2 gap-px border border-border bg-border">
+            {themes.map((theme) => {
+              const isSelected = selectedThemeName === theme.name;
+              return (
+                <button
+                  key={theme.name}
+                  type="button"
+                  onClick={() => handleThemeSelect(theme.name)}
+                  aria-pressed={isSelected}
+                  title={t(`theme.${theme.name.toLowerCase()}.description`, theme.name)}
+                  className={`
+                    px-3 py-2.5 text-left text-xs font-bold uppercase tracking-tight truncate transition-colors
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring
+                    ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-background text-foreground hover:bg-muted'}
+                  `}
+                >
+                  {theme.name}
+                </button>
+              );
+            })}
           </div>
+
+          {selectedTheme && (
+            <p className="text-xs text-muted-foreground">
+              {t(`theme.${selectedTheme.name.toLowerCase()}.description`, selectedTheme.name)}
+            </p>
+          )}
         </div>
       )}
 
@@ -249,9 +243,9 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isMobile = false }) => {
             {selectedTheme.options
               .filter((option) => !(selectedThemeName === 'Strap' && option.id === 'DARK_MODE'))
               .map((option, index) => (
-              <div key={index} className="space-y-2">
+              <div key={index} className={option.type === 'boolean' ? 'flex items-center justify-between gap-3' : 'space-y-2'}>
                 <label className="block text-xs font-bold text-foreground uppercase tracking-wide">
-                  {option.id}
+                  {option.id.replace(/_/g, ' ')}
                   {option.description && (
                     <span className="text-[10px] text-muted-foreground ml-2 font-normal normal-case">
                       {option.id === 'TEXT_ALPHA' 
@@ -361,7 +355,7 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isMobile = false }) => {
                 )}
 
                 {option.type === 'boolean' && (
-                  <div className="flex items-center justify-end">
+                  <div className="shrink-0">
                     <Toggle
                       size="sm"
                       checked={getOptionValue(option.id, option.default) as boolean}

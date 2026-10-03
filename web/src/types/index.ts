@@ -137,6 +137,9 @@ export interface Theme {
  */
 export interface ImagePreviewProps {
   selectedPhoto: Photo | null;
+  onDelete?: () => void;
+  onPrevious?: () => void;
+  onNext?: () => void;
 }
 
 export interface ThemeSettingsProps {

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStore } from '../store';
 import themes, { useThemeStore } from '../themes';
@@ -156,18 +156,6 @@ const MobileLayout = () => {
     }
   }, [photos, selectedImageIndex, setPhotos]);
 
-  useEffect(() => {
-    const handleDeleteEvent = (event: Event) => {
-      const e = event as CustomEvent<{ index: number }>;
-      handleDeleteOne(e.detail.index);
-    };
-
-    window.addEventListener('delete-current-photo', handleDeleteEvent);
-    return () => {
-      window.removeEventListener('delete-current-photo', handleDeleteEvent);
-    };
-  }, [handleDeleteOne]);
-
   const handleDeleteAll = useCallback(() => {
     if (photos.length === 0) return;
     setShowDeleteAllDialog(true);
@@ -235,7 +223,7 @@ const MobileLayout = () => {
              <div className="flex-1 relative bg-muted/10 flex items-center justify-center overflow-hidden">
                 {selectedImageIndex !== null && photos[selectedImageIndex] ? (
                   <div className="w-full h-full flex items-center justify-center">
-                    <ImagePreview selectedPhoto={photos[selectedImageIndex]} />
+                    <ImagePreview selectedPhoto={photos[selectedImageIndex]} onDelete={() => handleDeleteOne()} />
                   </div>
                 ) : (
                   <div className="text-muted-foreground text-sm">Select a photo</div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { IoClose } from 'react-icons/io5';
 import IconButton from './icon-button';
 
@@ -20,6 +21,7 @@ const Dialog: React.FC<DialogProps> = ({
   className = '',
   bodyClassName = 'p-4',
 }) => {
+  const { t } = useTranslation();
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,15 +45,23 @@ const Dialog: React.FC<DialogProps> = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
         ref={dialogRef}
-        className={`bg-background rounded-lg shadow-lg w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 ${className}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={`bg-background border border-border shadow-lg w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="text-lg font-semibold">{title}</h3>
-          <IconButton variant="ghost" size="sm" onClick={onClose}>
+          <IconButton variant="ghost" size="sm" onClick={onClose} aria-label={t('close')}>
             <IoClose size={20} />
           </IconButton>
         </div>

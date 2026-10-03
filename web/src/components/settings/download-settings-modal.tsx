@@ -30,7 +30,7 @@ const DownloadSettingsModal: React.FC<DownloadSettingsModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title={title || t('download.settings.title', 'Download Settings')}
-      className="max-w-3xl w-full max-h-[calc(100dvh-2rem)] flex flex-col"
+      className="max-w-xl w-full max-h-[calc(100dvh-2rem)] flex flex-col"
       bodyClassName="p-0 flex flex-col min-h-0"
     >
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-hidden px-6 py-4">

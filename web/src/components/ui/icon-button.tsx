@@ -15,14 +15,14 @@ const IconButton: React.FC<IconButtonProps> = ({
   tooltip,
   ...props 
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed border';
+  const baseClasses = 'inline-flex items-center justify-center transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed border';
   
   const variants = {
-    primary: 'bg-primary text-primary-foreground border-primary hover:bg-primary/90 focus:ring-primary',
-    secondary: 'bg-secondary text-secondary-foreground border-secondary hover:bg-secondary/80 focus:ring-secondary',
-    danger: 'bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90 focus:ring-destructive',
-    ghost: 'bg-transparent text-muted-foreground border-transparent hover:bg-accent hover:text-accent-foreground focus:ring-accent',
-    outline: 'bg-transparent text-foreground border-input hover:bg-accent hover:text-accent-foreground focus:ring-accent'
+    primary: 'bg-primary text-primary-foreground border-primary hover:bg-primary/90 focus-visible:ring-primary',
+    secondary: 'bg-secondary text-secondary-foreground border-secondary hover:bg-secondary/80 focus-visible:ring-ring',
+    danger: 'bg-destructive text-destructive-foreground border-destructive hover:bg-destructive/90 focus-visible:ring-destructive',
+    ghost: 'bg-transparent text-muted-foreground border-transparent hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring',
+    outline: 'bg-transparent text-foreground border-input hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring'
   };
   
   const sizes = {
@@ -35,6 +35,7 @@ const IconButton: React.FC<IconButtonProps> = ({
     <button
       className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`}
       title={tooltip}
+      aria-label={tooltip}
       {...props}
     >
       {children}

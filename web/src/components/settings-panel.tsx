@@ -18,14 +18,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ selectedImageIndex, onClo
 
   return (
     <div className="h-full flex flex-col bg-background">
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between shrink-0">
-        <h2 className="font-bold uppercase tracking-tight text-foreground">
-          {t('settings.title', 'SETTINGS')}
+      <div className="h-12 px-4 border-b border-border flex items-center justify-between shrink-0">
+        <h2 className="text-sm font-bold uppercase tracking-tight text-foreground">
+          {t('settings.title', 'Settings')}
         </h2>
         <IconButton
           variant="ghost"
           size="sm"
           onClick={onClose}
+          tooltip={t('toolbar.hide-settings', 'Hide Settings')}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
